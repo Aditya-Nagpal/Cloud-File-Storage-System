@@ -1,0 +1,10 @@
+go 1.24.2
+
+use (
+	./services/api-gateway
+	./services/auth-service
+	./services/file-service
+	./services/metadata-service
+	./services/notification-service
+	./services/sharing-service
+)
