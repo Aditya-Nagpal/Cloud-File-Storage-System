@@ -6,5 +6,6 @@ use (
 	./services/file-service
 	./services/metadata-service
 	./services/notification-service
+	./services/shared
 	./services/sharing-service
 )
