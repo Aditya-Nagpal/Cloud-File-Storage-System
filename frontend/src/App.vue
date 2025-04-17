@@ -3,7 +3,7 @@
 
 <template>
   <div>
-    <p>Hello World</p>
+    <router-view />
   </div>
 </template>
 

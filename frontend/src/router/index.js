@@ -3,16 +3,9 @@ import SignIn from '../views/SignIn.vue';
 import SignUp from '../views/SignUp.vue';
 
 const routes = [
-  {
-    path: '/user/signin',
-    name: 'SignIn',
-    component: SignIn,
-  },
-  {
-    path: '/user/signup',
-    name: 'SignUp',
-    component: SignUp,
-  },
+    { path: '/user/signin', component: SignIn},
+    { path: '/user/signup', component: SignUp },
+    { path: '/', redirect: '/user/signin' }
 ];
 
 const router = createRouter({
