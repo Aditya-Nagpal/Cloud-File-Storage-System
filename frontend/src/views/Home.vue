@@ -3,7 +3,7 @@
 
 <template>
   <div>
-    <p>Auth form</p>
+    <p>Heome</p>
   </div>
 </template>
 
