@@ -1,12 +1,13 @@
 <template>
   <!-- <form @submit.prevent="handleSignIn"> -->
-  <form>
+  <!-- <form>
     <h2>Sign In</h2>
     <input v-model="email" type="email" placeholder="Email" required />
     <input v-model="password" type="password" placeholder="Password" required />
     <button type="submit">Sign In</button>
     <a href="/user/signup">Don't have an account? Sign up</a>
-  </form>
+  </form> -->
+  <p> sign in</p>
 </template>
 
 <script setup>
