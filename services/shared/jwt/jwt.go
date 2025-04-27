@@ -6,14 +6,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var SecretKey = []byte("secret")
-
 type Claims struct {
 	Email string `json:"email"`
 	jwt.RegisteredClaims
 }
 
-func Generate(email string) (string, error) {
+func Generate(email string, jwtSecret string) (string, error) {
 	claims := &Claims{
 		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -24,12 +22,12 @@ func Generate(email string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(SecretKey)
+	return token.SignedString([]byte(jwtSecret))
 }
 
-func Verify(tokenStr string) (*Claims, error) {
+func Verify(tokenStr string, jwtSecret string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return SecretKey, nil
+		return []byte(jwtSecret), nil
 	})
 
 	if err != nil || !token.Valid {

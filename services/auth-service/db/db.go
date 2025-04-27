@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
+
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/config"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -12,7 +13,7 @@ import (
 var DB *pgxpool.Pool
 
 func ConnectDatabase() {
-	dbURL := os.Getenv("DATABASE_URL")
+	dbURL := config.AppConfig.DatabaseURL
 	var err error
 
 	DB, err = pgxpool.New(context.Background(), dbURL)
