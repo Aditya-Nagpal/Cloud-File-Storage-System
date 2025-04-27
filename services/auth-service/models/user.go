@@ -1,6 +1,10 @@
-package main
+package models
 
-func main() {
-	// This is a placeholder for the main function.
-	// The actual implementation will depend on the specific requirements of the application.
+type User struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Age      int    `json:"age"`
 }
+
+var Users = make(map[string]User)
