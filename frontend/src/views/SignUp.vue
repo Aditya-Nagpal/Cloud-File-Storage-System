@@ -7,7 +7,7 @@
     <input v-model="password" type="password" placeholder="Password" required />
     <input v-model="confirmPassword" type="password" placeholder="Confirm Password" required />
     <button type="submit">Sign Up</button>
-    <a href="/user/signin">Already have an account? Sign in</a>
+    <a href="/user/login">Already have an account? Sign in</a>
   </form>
 </template>
 

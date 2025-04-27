@@ -1,4 +1,28 @@
 <script setup>
+import { onMounted } from 'vue';
+import { useAuthStore } from './store/auth';
+import { useRouter, useRoute } from 'vue-router'
+
+const auth = useAuthStore();
+const router = useRouter();
+const route = useRoute();
+
+onMounted(async () => {
+  await router.isReady();
+  const publicPages = ['/user/login', '/user/signup'];
+  try {
+    await auth.checkAuth();
+    if(publicPages.includes(route.path)){
+      router.push('/');
+      return;
+    }
+  } catch (error) {
+    if(!publicPages.includes(route.path)) {
+      router.push('/user/login');
+      return;
+    }
+  }
+});
 </script>
 
 <template>

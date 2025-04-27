@@ -22,9 +22,9 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		Port:        getEnv("PORT", "8001"),
+		Port:        getEnv("PORT", ":8001"),
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:bhaibhai10@localhost:5432/FastFiles"),
-		JwtSecret:   getEnv("JWT_SECRET", ""),
+		JwtSecret:   getEnv("JWT_SECRET", "Aditya_Nagpal"),
 	}
 }
 

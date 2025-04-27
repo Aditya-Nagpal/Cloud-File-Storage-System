@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -21,6 +22,7 @@ type RegisterRequest struct {
 
 func Register(c *gin.Context) {
 	var req RegisterRequest
+	fmt.Println("Registering user: ", req)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -35,30 +37,30 @@ func Register(c *gin.Context) {
 	checkQuery := `SELECT EXISTS(SELECT 1 FROM users WHERE email=$1)`
 	err := db.DB.QueryRow(ctx, checkQuery, req.Email).Scan(&exists)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not check email"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not check email", "error": err.Error()})
 		return
 	}
 	if exists {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already registered"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Email already registered"})
 		return
 	}
 
-	// Hash password
+	// // Hash password
 	hashedPassword, err := hash.HashPassword(req.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash password"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not hash password", "error": err.Error()})
 		return
 	}
 
-	// Insert user
+	// // Insert user
 	insertQuery := `INSERT INTO users (name, email, age, password) VALUES ($1, $2, $3, $4)`
 	_, err = db.DB.Exec(ctx, insertQuery, req.Name, req.Email, req.Age, hashedPassword)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not create user", "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
+	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully", "user": req})
 }
 
 type LoginRequest struct {
