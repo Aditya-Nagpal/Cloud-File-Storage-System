@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 
+const BASE_URL = import.meta.env.API_BASE_URL;
 const SIGN_IN_API = '';
-const SIGN_UP_API = '';
+// const SIGN_UP_API = `${BASE_URL}/auth/register`;
+const SIGN_UP_API = ''
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
