@@ -14,6 +14,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../store/auth';
 import { useRouter } from 'vue-router';
+import { toast } from 'vue3-toastify';
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -23,8 +24,9 @@ const password = ref('');
 
 const handleSignIn = async () => {
   try {
-    await auth.signIn(email.value, password.value);
-    router.push('/'); // redirect after login
+    // await auth.signIn(email.value, password.value);
+    toast.success('Login successful');
+    // router.push('/'); // redirect after login
   } catch (error) {
     alert('Login failed');
     throw error;
