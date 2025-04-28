@@ -1,11 +1,12 @@
 <script setup>
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAuthStore } from './store/auth';
 import { useRouter, useRoute } from 'vue-router'
 
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
+const isLoading = ref(true);
 
 onMounted(async () => {
   await router.isReady();
@@ -22,12 +23,17 @@ onMounted(async () => {
       router.push('/user/login');
       return;
     }
+  } finally {
+    isLoading.value = false;
   }
 });
 </script>
 
 <template>
-  <div>
+  <div v-if="isLoading" class="loading-spinner">
+    Loading...
+  </div>
+  <div v-else>
     <router-view />
   </div>
 </template>
@@ -44,5 +50,13 @@ onMounted(async () => {
 }
 .logo.vue:hover {
   filter: drop-shadow(0 0 2em #42b883aa);
+}
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 2rem;
+  font-weight: bold;
 }
 </style>
