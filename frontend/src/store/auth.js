@@ -5,6 +5,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const SIGN_IN_API = BASE_URL + '/auth/login';
 const SIGN_UP_API = BASE_URL + '/auth/register';
 const PROTECT_API = BASE_URL + '/auth/protected';
+const LOGOUT_API = BASE_URL + '/auth/logout';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -27,6 +28,8 @@ export const useAuthStore = defineStore('auth', {
         const response = await axios.post(SIGN_IN_API, {
           email,
           password
+        }, {
+          withCredentials: true
         });
         const { user, accessToken } = response.data;
         this.user = user;
@@ -51,12 +54,16 @@ export const useAuthStore = defineStore('auth', {
         })
         return {accessToken: this.accessToken, user: this.user};
       } catch (error) {
-        this.logout();
+        await this.logout();
         throw error;
       }
     },
 
-    logout() {
+    async logout() {
+      await axios.post(LOGOUT_API, {}, {
+        withCredentials: true
+      })
+
       this.user = null;
       this.accessToken = null;
 

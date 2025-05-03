@@ -10,6 +10,7 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/auth/register", handlers.Register)
 	r.POST("/auth/login", handlers.Login)
 	r.POST("/auth/refresh", handlers.RefreshToken)
+	r.POST("/auth/logout", handlers.Logout)
 
 	r.GET("/auth/protected", middleware.JWTMiddleware(), func(c *gin.Context) {
 		email, _ := c.Get("email")

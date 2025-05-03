@@ -115,7 +115,8 @@ func Login(c *gin.Context) {
 	c.SetCookie("refreshToken", refreshToken, 7*24*60*60, "/", "localhost", false, true)
 
 	c.JSON(http.StatusOK, gin.H{
-		"accessToken": accessToken,
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
 		"user": gin.H{
 			"id":    id,
 			"name":  name,
@@ -143,4 +144,9 @@ func RefreshToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"accessToken": newAccessToken})
+}
+
+func Logout(c *gin.Context) {
+	c.SetCookie("refreshToken", "", -1, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }

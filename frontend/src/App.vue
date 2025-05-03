@@ -29,9 +29,9 @@ onMounted(async () => {
   }
 });
 
-const handleLogout = () => {
+const handleLogout = async () => {
   try {
-    auth.logout();
+    await auth.logout();
     router.push('/user/login');
   } catch (error) {
     console.error('logout failed: ', error);
