@@ -13,6 +13,7 @@ onMounted(async () => {
   const publicPages = ['/user/login', '/user/signup'];
   try {
     await auth.checkAuth();
+    console.log('checkAuth success');
     if(publicPages.includes(route.path)){
       router.push('/');
       return;

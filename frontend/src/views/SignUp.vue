@@ -15,6 +15,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../store/auth';
 import { useRouter } from 'vue-router';
+import { toast } from 'vue3-toastify';
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -27,21 +28,35 @@ const confirmPassword = ref('');
 
 const handleSignUp = async () => {
   if (password.value !== confirmPassword.value) {
-    alert('Passwords do not match');
+    toast.error('Passwords do not match');
     return;
   }
 
   try {
-    await auth.signUp({
+    const newUser = {
       name: name.value,
       email: email.value,
       age: Number(age.value),
       password: password.value,
-    });
-    router.push('/'); // redirect after sign-up
-  } catch (err) {
-    alert('Sign up failed');
-    throw err;
+    }
+    await auth.signUp(newUser);
+
+    toast.success('User Registered Successfully!');
+    resetForm();
+    router.push('/user/login'); // redirect after sign-up
+  } catch (error) {
+    console.error('Sign up error:', error);
+    toast.error(error.response.data.message);
+    resetForm();
+    return;
   }
+}
+
+const resetForm = () => {
+  name.value = ''
+  email.value = ''
+  age.value = ''
+  password.value = ''
+  confirmPassword.value = ''
 }
 </script>

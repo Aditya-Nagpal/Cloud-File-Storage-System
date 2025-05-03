@@ -24,12 +24,21 @@ const password = ref('');
 
 const handleSignIn = async () => {
   try {
-    // await auth.signIn(email.value, password.value);
+    const response = await auth.signIn(email.value, password.value);
+    console.log(response);
     toast.success('Login successful');
+    resetForm();
     // router.push('/'); // redirect after login
   } catch (error) {
-    alert('Login failed');
-    throw error;
+    console.error('Error in handleSignIn', error);
+    toast.error(error.response.data.message);
+    resetForm();
+    return;
   }
+}
+
+const resetForm = () => {
+  email.value = ''
+  password.value = ''
 }
 </script>

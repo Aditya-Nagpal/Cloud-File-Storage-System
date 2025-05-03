@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.API_BASE_URL;
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const SIGN_IN_API = BASE_URL + '/auth/login';
 const SIGN_UP_API = BASE_URL + '/auth/register';
-const PROTECT_API = BASE_URL + 'auth/protected';
+const PROTECT_API = BASE_URL + '/auth/protected';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -13,39 +13,41 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   actions: {
+    async signUp(payload) {
+      try {
+        const response = await axios.post(SIGN_UP_API, payload);
+        // const { user, token } = response.data;
+        // this.user = user;
+        // this.token = token;
+        // console.log(response.data);
+        // // save to local storage
+        // localStorage.setItem('token', this.token);
+        // localStorage.setItem('user', JSON.stringify(this.user));
+        // return response.data;
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+
     async signIn(email, password) {
       try {
         const response = await axios.post(SIGN_IN_API, {
           email,
           password
         });
-        const { user, token } = response.data;
-        this.user = user;
-        this.token = token;
+        // const { user, token } = response.data;
+        // this.user = user;
+        // this.token = token;
 
-        // save to local storage
-        localStorage.setItem('token', this.token);
-        localStorage.setItem('user', JSON.stringify(this.user));
+        // // save to local storage
+        // localStorage.setItem('token', this.token);
+        // localStorage.setItem('user', JSON.stringify(this.user));
+        return response.data;
       } catch (error) {
         console.error('Login failed:', error);
         throw error;
       }
-    },
-
-    async signUp(payload) {
-        try {
-            const response = await axios.post(SIGN_UP_API, payload);
-            const { user, token } = response.data;
-            this.user = user;
-            this.token = token;
-
-            // save to local storage
-            localStorage.setItem('token', this.token);
-            localStorage.setItem('user', JSON.stringify(this.user));
-        } catch (error) {
-          console.error('Registration failed:', error);
-          throw error;
-        }
     },
 
     async checkAuth() {
@@ -71,5 +73,10 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }
+  },
+  getters: {
+    isAuthenticated(state) {
+      return !!state.token;  // 🔥 just check token exists
+    },
   }
 });
