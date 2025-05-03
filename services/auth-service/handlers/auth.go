@@ -97,14 +97,25 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Generate JWT token
-	token, err := jwt.Generate(req.Email, config.AppConfig.JwtSecret)
+	// Generate access token short-lived
+	accessToken, err := jwt.GenerateWithExpiry(req.Email, config.AppConfig.JwtSecret, 15*time.Minute)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not generate token", "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not access generate token", "error": err.Error()})
 		return
 	}
+
+	// Generate refresh token long-lived
+	refreshToken, err := jwt.GenerateWithExpiry(req.Email, config.AppConfig.JwtSecret, 7*24*time.Hour)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not refresh generate token", "error": err.Error()})
+		return
+	}
+
+	// Set refresh token in secure HttpOnly cookie
+	c.SetCookie("refreshToken", refreshToken, 7*24*60*60, "/", "localhost", false, true)
+
 	c.JSON(http.StatusOK, gin.H{
-		"token": token,
+		"accessToken": accessToken,
 		"user": gin.H{
 			"id":    id,
 			"name":  name,
@@ -112,4 +123,24 @@ func Login(c *gin.Context) {
 			"age":   age,
 		},
 	})
+}
+
+func RefreshToken(c *gin.Context) {
+	refreshToken, err := c.Cookie("refreshToken")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "No refresh token found"})
+	}
+
+	claims, err := jwt.Verify(refreshToken, config.AppConfig.JwtSecret)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid or expired refresh token"})
+	}
+
+	newAccessToken, err := jwt.GenerateWithExpiry(claims.Email, config.AppConfig.JwtSecret, 15*time.Minute)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not generate new access token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"accessToken": newAccessToken})
 }

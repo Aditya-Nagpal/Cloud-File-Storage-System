@@ -9,7 +9,7 @@ const PROTECT_API = BASE_URL + '/auth/protected';
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: localStorage.getItem('user') || null,
-    token: localStorage.getItem('token') || null
+    accessToken: localStorage.getItem('accessToken') || null
   }),
 
   actions: {
@@ -28,28 +28,28 @@ export const useAuthStore = defineStore('auth', {
           email,
           password
         });
-        const { user, token } = response.data;
+        const { user, accessToken } = response.data;
         this.user = user;
-        this.token = token;
+        this.accessToken = accessToken;
 
         // save to local storage
-        localStorage.setItem('token', this.token);
+        localStorage.setItem('accessToken', this.accessToken);
         localStorage.setItem('user', JSON.stringify(this.user));
-        return {user, token};
+        return {user, accessToken};
       } catch (error) {
         throw error;
       }
     },
 
     async checkAuth() {
-      if(!this.token){throw new Error;}
+      if(!this.accessToken){throw new Error;}
       try {
         const response = await axios.get(PROTECT_API, {
           headers: {
-            Authorization: `Bearer ${this.token}`
+            Authorization: `Bearer ${this.accessToken}`
           }
         })
-        return {token: this.token, user: this.user};
+        return {accessToken: this.accessToken, user: this.user};
       } catch (error) {
         this.logout();
         throw error;
@@ -58,16 +58,16 @@ export const useAuthStore = defineStore('auth', {
 
     logout() {
       this.user = null;
-      this.token = null;
+      this.accessToken = null;
 
       // remove from local storage
-      localStorage.removeItem('token');
+      localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
     }
   },
   getters: {
     isAuthenticated(state) {
-      return !!state.token;  // 🔥 just check token exists
+      return !!state.accessToken;
     },
   }
 });

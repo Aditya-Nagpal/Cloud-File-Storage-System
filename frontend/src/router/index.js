@@ -21,13 +21,13 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore();
 
   const isPublic = publicPages.includes(to.path);
-  const token = auth.token;
+  const accessToken = auth.accessToken;
 
-  if(!token && !isPublic){
+  if(!accessToken && !isPublic){
     return '/user/login';
   }
 
-  if(token){
+  if(accessToken){
     try {
       await auth.checkAuth();
       if(isPublic){

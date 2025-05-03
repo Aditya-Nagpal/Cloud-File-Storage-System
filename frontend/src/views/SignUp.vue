@@ -43,7 +43,7 @@ const handleSignUp = async () => {
 
     toast.success('User Registered Successfully!');
     resetForm();
-    router.push('/user/login'); // redirect after sign-up
+    router.push('/user/login');
   } catch (error) {
     console.error('Sign up error:', error);
     toast.error(error.response.data.message);

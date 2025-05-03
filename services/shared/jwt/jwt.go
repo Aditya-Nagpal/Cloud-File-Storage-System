@@ -11,13 +11,13 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func Generate(email string, jwtSecret string) (string, error) {
+func GenerateWithExpiry(email string, jwtSecret string, expiryTime time.Duration) (string, error) {
 	claims := &Claims{
 		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "auth-service",
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiryTime)),
 		},
 	}
 
