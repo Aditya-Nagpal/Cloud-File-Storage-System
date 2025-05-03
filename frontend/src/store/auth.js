@@ -8,22 +8,14 @@ const PROTECT_API = BASE_URL + '/auth/protected';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null,
-    token: null
+    user: localStorage.getItem('user') || null,
+    token: localStorage.getItem('token') || null
   }),
 
   actions: {
     async signUp(payload) {
       try {
         const response = await axios.post(SIGN_UP_API, payload);
-        // const { user, token } = response.data;
-        // this.user = user;
-        // this.token = token;
-        // console.log(response.data);
-        // // save to local storage
-        // localStorage.setItem('token', this.token);
-        // localStorage.setItem('user', JSON.stringify(this.user));
-        // return response.data;
         return response.data;
       } catch (error) {
         throw error;
@@ -36,16 +28,15 @@ export const useAuthStore = defineStore('auth', {
           email,
           password
         });
-        // const { user, token } = response.data;
-        // this.user = user;
-        // this.token = token;
+        const { user, token } = response.data;
+        this.user = user;
+        this.token = token;
 
-        // // save to local storage
-        // localStorage.setItem('token', this.token);
-        // localStorage.setItem('user', JSON.stringify(this.user));
-        return response.data;
+        // save to local storage
+        localStorage.setItem('token', this.token);
+        localStorage.setItem('user', JSON.stringify(this.user));
+        return {user, token};
       } catch (error) {
-        console.error('Login failed:', error);
         throw error;
       }
     },
@@ -53,7 +44,7 @@ export const useAuthStore = defineStore('auth', {
     async checkAuth() {
       if(!this.token){throw new Error;}
       try {
-        await axios.get(PROTECT_API, {
+        const response = await axios.get(PROTECT_API, {
           headers: {
             Authorization: `Bearer ${this.token}`
           }

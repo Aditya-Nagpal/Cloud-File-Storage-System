@@ -11,6 +11,7 @@ import (
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/jwt"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
 type RegisterRequest struct {
@@ -83,7 +84,10 @@ func Login(c *gin.Context) {
 
 	query := `SELECT id, name, age, password FROM users WHERE email=$1`
 	err := db.DB.QueryRow(ctx, query, req.Email).Scan(&id, &name, &age, &hashedPassword)
-	if err != nil {
+	if err == pgx.ErrNoRows {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid email or password"})
+		return
+	} else if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Error in checking email", "error": err.Error()})
 		return
 	}

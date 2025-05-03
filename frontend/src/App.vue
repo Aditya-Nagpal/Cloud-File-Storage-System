@@ -19,7 +19,7 @@ onMounted(async () => {
       return;
     }
   } catch (error) {
-    console.error('checkAuth failed: ', error);
+    console.error('checkAuth failed');
     if(!publicPages.includes(route.path)) {
       router.push('/user/login');
       return;
@@ -28,6 +28,16 @@ onMounted(async () => {
     isLoading.value = false;
   }
 });
+
+const handleLogout = () => {
+  try {
+    auth.logout();
+    router.push('/user/login');
+  } catch (error) {
+    console.error('logout failed: ', error);
+    return;
+  }
+}
 </script>
 
 <template>
@@ -35,6 +45,7 @@ onMounted(async () => {
     Loading...
   </div>
   <div v-else>
+    <button @click="handleLogout">logout</button>
     <router-view />
   </div>
 </template>

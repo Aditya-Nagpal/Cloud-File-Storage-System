@@ -28,7 +28,7 @@ const handleSignIn = async () => {
     console.log(response);
     toast.success('Login successful');
     resetForm();
-    // router.push('/'); // redirect after login
+    router.push('/'); // redirect after login
   } catch (error) {
     console.error('Error in handleSignIn', error);
     toast.error(error.response.data.message);
