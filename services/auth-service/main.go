@@ -20,8 +20,7 @@ func main() {
 
 	// Enable CORS
 	r.Use(cors.New(cors.Config{
-		// AllowOrigins:     []string{"*"}, // Or "http://localhost:5173" for Vite
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowOrigins:     []string{config.AppConfig.FrontendBaseUrl},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},

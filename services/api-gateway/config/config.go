@@ -8,9 +8,8 @@ import (
 )
 
 type Config struct {
+	AuthServiceUrl  string
 	Port            string
-	DatabaseURL     string
-	JwtSecret       string
 	FrontendBaseUrl string
 }
 
@@ -23,9 +22,8 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		Port:            getEnv("PORT", ":8001"),
-		DatabaseURL:     getEnv("DATABASE_URL", "postgres://postgres:bhaibhai10@localhost:5432/FastFiles"),
-		JwtSecret:       getEnv("JWT_SECRET", "Aditya_Nagpal"),
+		AuthServiceUrl:  getEnv("AUTH_SERVICE_URL", "http://localhost:8001"),
+		Port:            getEnv("PORT", ":8000"),
 		FrontendBaseUrl: getEnv("FRONTEND_BASE_URL", "http://localhost:5173"),
 	}
 }

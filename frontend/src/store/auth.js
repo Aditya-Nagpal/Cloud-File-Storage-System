@@ -4,12 +4,12 @@ import axios from 'axios';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const SIGN_IN_API = BASE_URL + '/auth/login';
 const SIGN_UP_API = BASE_URL + '/auth/register';
-const PROTECT_API = BASE_URL + '/auth/protected';
 const LOGOUT_API = BASE_URL + '/auth/logout';
+const PROTECT_API = BASE_URL+'/auth/protected';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: localStorage.getItem('user') || null,
+    user: JSON.parse(localStorage.getItem('user')) || null,
     accessToken: localStorage.getItem('accessToken') || null
   }),
 
@@ -47,22 +47,30 @@ export const useAuthStore = defineStore('auth', {
     async checkAuth() {
       if(!this.accessToken){throw new Error;}
       try {
+        console.log(PROTECT_API)
         const response = await axios.get(PROTECT_API, {
           headers: {
             Authorization: `Bearer ${this.accessToken}`
           }
         })
+        console.log(response.data)
         return {accessToken: this.accessToken, user: this.user};
       } catch (error) {
+        console.error('Authentication check failed:', error);
         await this.logout();
         throw error;
       }
     },
 
     async logout() {
-      await axios.post(LOGOUT_API, {}, {
-        withCredentials: true
-      })
+      try {
+        await axios.post(LOGOUT_API, {}, {
+          withCredentials: true
+        })
+      } catch (error) {
+        console.error('Logout failed:', error);
+        throw error;
+      }
 
       this.user = null;
       this.accessToken = null;
@@ -70,6 +78,11 @@ export const useAuthStore = defineStore('auth', {
       // remove from local storage
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
+    },
+
+    setAccessToken(token) {
+      this.accessToken = token;
+      localStorage.setItem('accessToken', token);
     }
   },
   getters: {
