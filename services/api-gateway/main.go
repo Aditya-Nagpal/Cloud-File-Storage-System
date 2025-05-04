@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/api-gateway/config"
@@ -15,7 +16,8 @@ func main() {
 
 	r := gin.Default()
 
-	// Enable CORS
+	// Enable CORS - no need to do this in other microservices
+	fmt.Println("Frontend Base URL:", config.AppConfig.FrontendBaseUrl)
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{config.AppConfig.FrontendBaseUrl},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

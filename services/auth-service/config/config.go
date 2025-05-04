@@ -8,10 +8,9 @@ import (
 )
 
 type Config struct {
-	Port            string
-	DatabaseURL     string
-	JwtSecret       string
-	FrontendBaseUrl string
+	Port        string
+	DatabaseURL string
+	JwtSecret   string
 }
 
 var AppConfig *Config
@@ -23,10 +22,9 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		Port:            getEnv("PORT", ":8001"),
-		DatabaseURL:     getEnv("DATABASE_URL", "postgres://postgres:bhaibhai10@localhost:5432/FastFiles"),
-		JwtSecret:       getEnv("JWT_SECRET", "Aditya_Nagpal"),
-		FrontendBaseUrl: getEnv("FRONTEND_BASE_URL", "http://localhost:5173"),
+		Port:        getEnv("PORT", ":8001"),
+		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:bhaibhai10@localhost:5432/FastFiles"),
+		JwtSecret:   getEnv("JWT_SECRET", "Aditya_Nagpal"),
 	}
 }
 

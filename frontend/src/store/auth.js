@@ -47,13 +47,11 @@ export const useAuthStore = defineStore('auth', {
     async checkAuth() {
       if(!this.accessToken){throw new Error;}
       try {
-        console.log(PROTECT_API)
         const response = await axios.get(PROTECT_API, {
           headers: {
             Authorization: `Bearer ${this.accessToken}`
           }
         })
-        console.log(response.data)
         return {accessToken: this.accessToken, user: this.user};
       } catch (error) {
         console.error('Authentication check failed:', error);

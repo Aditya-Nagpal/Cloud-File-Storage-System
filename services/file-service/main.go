@@ -1,17 +1,14 @@
 package main
 
 import (
-	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/config"
-	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/db"
-	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/routes"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/config"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/routes"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	// Load environment variables from .env file
 	config.LoadConfig()
-
-	db.ConnectDatabase()
 
 	r := gin.Default()
 

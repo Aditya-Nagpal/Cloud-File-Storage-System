@@ -8,10 +8,7 @@ import (
 )
 
 type Config struct {
-	AuthServiceUrl  string
-	FileServiceUrl  string
-	Port            string
-	FrontendBaseUrl string
+	Port string
 }
 
 var AppConfig *Config
@@ -23,10 +20,7 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		AuthServiceUrl:  getEnv("AUTH_SERVICE_URL", "http://localhost:8001"),
-		FileServiceUrl:  getEnv("FILE_SERVICE_URL", "http://localhost:8002"),
-		Port:            getEnv("PORT", ":8000"),
-		FrontendBaseUrl: getEnv("FRONTEND_BASE_URL", "http://localhost:5173"),
+		Port: getEnv("PORT", ":8002"),
 	}
 }
 

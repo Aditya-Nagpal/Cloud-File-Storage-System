@@ -40,7 +40,6 @@ const handleSignUp = async () => {
       password: password.value,
     }
     await auth.signUp(newUser);
-
     toast.success('User Registered Successfully!');
     resetForm();
     router.push('/user/login');

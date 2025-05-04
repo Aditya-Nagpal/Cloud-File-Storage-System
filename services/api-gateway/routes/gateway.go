@@ -10,6 +10,7 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine) {
+	// AUTH-SERVICE
 	authServiceUrl, err := url.Parse(config.AppConfig.AuthServiceUrl)
 	if err != nil {
 		panic(err)

@@ -24,8 +24,7 @@ const password = ref('');
 
 const handleSignIn = async () => {
   try {
-    const response = await auth.signIn(email.value, password.value);
-    console.log(response);
+    await auth.signIn(email.value, password.value);
     toast.success('Login successful');
     resetForm();
     router.push('/'); // redirect after login
