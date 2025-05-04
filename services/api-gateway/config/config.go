@@ -12,6 +12,7 @@ type Config struct {
 	FileServiceUrl  string
 	Port            string
 	FrontendBaseUrl string
+	JwtSecret       string
 }
 
 var AppConfig *Config
@@ -27,6 +28,7 @@ func LoadConfig() {
 		FileServiceUrl:  getEnv("FILE_SERVICE_URL", "http://localhost:8002"),
 		Port:            getEnv("PORT", ":8000"),
 		FrontendBaseUrl: getEnv("FRONTEND_BASE_URL", "http://localhost:5173"),
+		JwtSecret:       getEnv("JWT_SECRET", "Aditya_Nagpal"),
 	}
 }
 

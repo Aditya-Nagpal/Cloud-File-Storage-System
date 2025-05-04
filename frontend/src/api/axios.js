@@ -4,11 +4,6 @@ import { useAuthStore } from '../store/auth';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const REFRESH_API = BASE_URL+'/auth/refresh';
 
-const API = axios.create({
-  baseURL: BASE_URL,
-  withCredentials: true // utmost important for refresh token
-});
-
 // Flag to avoid multiple refresh attempts
 let isRefreshing = false;
 let failedQueue = [];
@@ -24,63 +19,67 @@ const processQueue = (error, token = null) => {
     failedQueue = [];
 };
 
-// Request interceptor - attact access token
-API.interceptors.request.use((config) => {
-    const authStore = useAuthStore();
-    const token = authStore.accessToken;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+const API = axios.create({
+    baseURL: BASE_URL,
+    withCredentials: true
+});
 
-// Response interceptor - handle 401 by try refresh
+// Intercept 401 responses (unauthorized) and refresh token
 API.interceptors.response.use(
     response => response,
     async (error) => {
-        const authStore = useAuthStore();
         const originalRequest = error.config;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Check for 401
+        if(error.response?.status === 401 && !originalRequest._retry){
             originalRequest._retry = true;
-            if(isRefreshing) {
-                return new Promise(function(resolve, reject) {
+            const authStore = useAuthStore();
+            if(isRefreshing){
+                return new Promise((resolve, reject) => {
                     failedQueue.push({resolve, reject});
-                }).then(token => {
-                    originalRequest.headers.Authorization = `Bearer ${token}`;
-                    return API(originalRequest);
-                }).catch(err => {
-                    return Promise.reject(err);
-                });
+                })
+                    .then((token) => {
+                        originalRequest.headers.Authorization = 'Bearer '+token;
+                        return API(originalRequest);
+                    })
+                    .catch((err) => Promise.reject(err));
             }
+
             isRefreshing = true;
+
             try {
-                const refreshResponse = await axios.get(REFRESH_API, {
-                    withCredentials: true
+                // const newToken = await getNewToken(); // Calls /auth/refresh
+                const res = await axios.get(REFRESH_API, {
+                    withCredentials: true // sends HttpOnly cookie
                 });
+                const newToken = res.data.accessToken;
+                authStore.setAccessToken(newToken);
 
-                const newAccessToken = refreshResponse.data.accessToken;
-                authStore.setAccessToken(newAccessToken); // update pinia + localstorage
+                API.defaults.headers.common.Authorization = 'Bearer '+newToken;
+                originalRequest.headers.Authorization = 'Bearer '+newToken;
 
-                // Retry the original request with the new token
-                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-                processQueue(null, newAccessToken);
-
+                processQueue(null, newToken);
                 return API(originalRequest);
-            } catch (refreshError) {
-                processQueue(refreshError, null);
-                // await authStore.logout();
-                throw refreshError;
+            } catch (error) {
+                processQueue(error, null);
+                await authStore.logout();
+                return Promise.reject(error);
             } finally {
                 isRefreshing = false;
             }
         }
+        
         return Promise.reject(error);
     }
 );
+
+// Request interceptor - attact access token
+API.interceptors.request.use((config) => {
+    const authStore = useAuthStore();
+    if (authStore.accessToken) {
+        config.headers.Authorization = `Bearer ${authStore.accessToken}`;
+    }
+    return config;
+});
 
 export default API;

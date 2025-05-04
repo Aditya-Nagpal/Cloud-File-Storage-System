@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
+import API from '../api/axios';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const SIGN_IN_API = BASE_URL + '/auth/login';
 const SIGN_UP_API = BASE_URL + '/auth/register';
 const LOGOUT_API = BASE_URL + '/auth/logout';
 const PROTECT_API = BASE_URL+'/auth/protected';
+const REFRESH_API = BASE_URL + '/auth/refresh';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -38,21 +40,27 @@ export const useAuthStore = defineStore('auth', {
         // save to local storage
         localStorage.setItem('accessToken', this.accessToken);
         localStorage.setItem('user', JSON.stringify(this.user));
-        return {user, accessToken};
+        return { user, accessToken };
       } catch (error) {
         throw error;
       }
     },
 
     async checkAuth() {
-      if(!this.accessToken){throw new Error;}
+      if(!this.accessToken){
+        try {
+          // Try to refresh token if non exists
+          await this.refreshAccessToken();
+        } catch (error) {
+          console.error('Token refresh failed during checkAuth:', error);
+          await this.logout();
+          throw error;
+        }
+      }
+
       try {
-        const response = await axios.get(PROTECT_API, {
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`
-          }
-        })
-        return {accessToken: this.accessToken, user: this.user};
+        const response = await API.get(PROTECT_API);
+        return response.data;
       } catch (error) {
         console.error('Authentication check failed:', error);
         await this.logout();
@@ -62,7 +70,7 @@ export const useAuthStore = defineStore('auth', {
 
     async logout() {
       try {
-        await axios.post(LOGOUT_API, {}, {
+        await axios.post(LOGOUT_API, {
           withCredentials: true
         })
       } catch (error) {
@@ -78,9 +86,23 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('user');
     },
 
-    setAccessToken(token) {
-      this.accessToken = token;
-      localStorage.setItem('accessToken', token);
+    async refreshAccessToken() {
+      try {
+        const res = await axios.get(REFRESH_API, {
+          withCredentials: true // sends HttpOnly cookie
+        });
+        const { accessToken } = res.data;
+
+        this.setAccessToken(accessToken);
+        return accessToken;
+      } catch (error) {
+        throw error;
+      }
+    },
+
+    setAccessToken(accessToken) {
+      this.accessToken = accessToken;
+      localStorage.setItem('accessToken', accessToken);
     }
   },
   getters: {

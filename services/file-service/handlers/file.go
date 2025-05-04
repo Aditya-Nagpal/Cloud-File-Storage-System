@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	// "net/http"
+	"net/http"
 	// "os"
 	// "path/filepath"
 
@@ -9,9 +9,9 @@ import (
 )
 
 func UploadFile(c *gin.Context) {
-
+	c.JSON(http.StatusOK, gin.H{"message": "in upload api"})
 }
 
 func DownloadFile(c *gin.Context) {
-
+	c.JSON(http.StatusOK, gin.H{"message": "in download api"})
 }
