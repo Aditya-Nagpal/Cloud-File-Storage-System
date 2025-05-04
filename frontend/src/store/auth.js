@@ -70,7 +70,7 @@ export const useAuthStore = defineStore('auth', {
 
     async logout() {
       try {
-        await axios.post(LOGOUT_API, {
+        await axios.get(LOGOUT_API, {
           withCredentials: true
         })
       } catch (error) {

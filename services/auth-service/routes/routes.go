@@ -9,8 +9,8 @@ import (
 func SetupRoutes(r *gin.Engine) {
 	r.POST("/register", handlers.Register)
 	r.POST("/login", handlers.Login)
-	r.POST("/refresh", handlers.RefreshToken)
-	r.POST("/logout", handlers.Logout)
+	r.GET("/refresh", handlers.RefreshToken)
+	r.GET("/logout", handlers.Logout)
 
 	r.GET("/protected", middleware.JWTMiddleware(), func(c *gin.Context) {
 		email, _ := c.Get("email")

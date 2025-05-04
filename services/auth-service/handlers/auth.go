@@ -130,11 +130,13 @@ func RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("refreshToken")
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "No refresh token found"})
+		return
 	}
 
 	claims, err := jwt.Verify(refreshToken, config.AppConfig.JwtSecret)
-	if err != nil {
+	if err != nil || claims == nil || claims.Email == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid or expired refresh token"})
+		return
 	}
 
 	newAccessToken, err := jwt.GenerateWithExpiry(claims.Email, config.AppConfig.JwtSecret, 15*time.Minute)
