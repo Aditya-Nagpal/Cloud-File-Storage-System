@@ -8,7 +8,12 @@ import (
 )
 
 type Config struct {
-	Port string
+	Port               string
+	DatabaseURL        string
+	BucketName         string
+	AWSAccessKeyId     string
+	AWSSecretAccessKey string
+	ASWRegion          string
 }
 
 var AppConfig *Config
@@ -20,7 +25,12 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		Port: getEnv("PORT", ":8002"),
+		Port:               getEnv("PORT", ":8002"),
+		DatabaseURL:        getEnv("DATABASE_URL", "postgres://postgres:bhaibhai10@localhost:5432/FastFiles"),
+		BucketName:         getEnv("BUCKET_NAME", "fastfiles-bucket"),
+		AWSAccessKeyId:     getEnv("AWS_ACCESS_KEY_ID", ""),
+		AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY_ID", ""),
+		ASWRegion:          getEnv("AWS_REGION", "ap-south-1"),
 	}
 }
 

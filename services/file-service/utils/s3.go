@@ -1,0 +1,61 @@
+package utils
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"mime/multipart"
+	"os"
+
+	ConfigEnv "github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/config"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+)
+
+type S3Uploader struct {
+	Client     *s3.Client
+	BucketName string
+}
+
+func NewS3Uploader() (*S3Uploader, error) {
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(ConfigEnv.AppConfig.ASWRegion),
+	)
+	if err != nil {
+		panic("Failed to load AWS config: " + err.Error())
+	}
+
+	client := s3.NewFromConfig(cfg)
+
+	return &S3Uploader{
+		Client:     client,
+		BucketName: os.Getenv(ConfigEnv.AppConfig.BucketName),
+	}, nil
+}
+
+func (u *S3Uploader) UploadFile(file multipart.File, fileHeader *multipart.FileHeader, key string) (string, error) {
+	defer file.Close()
+
+	buffer := new(bytes.Buffer)
+	_, err := buffer.ReadFrom(file)
+	if err != nil {
+		return "", fmt.Errorf("failed to read file: %v", err)
+	}
+
+	_, err = u.Client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket:      aws.String(u.BucketName),
+		Key:         aws.String(key),
+		Body:        bytes.NewReader(buffer.Bytes()),
+		ContentType: aws.String(fileHeader.Header.Get("Content-Type")),
+		ACL:         types.ObjectCannedACLPublicRead, // For public read access
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload file to S3: %v", err)
+	}
+
+	url := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", u.BucketName, key)
+	return url, nil
+}
