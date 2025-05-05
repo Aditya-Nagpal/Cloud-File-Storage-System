@@ -19,7 +19,6 @@ onMounted(async () => {
       return;
     }
   } catch (error) {
-    console.error('checkAuth failed', error);
     if(!publicPages.includes(route.path)) {
       router.push('/user/login');
       return;

@@ -13,7 +13,7 @@ type Config struct {
 	BucketName         string
 	AWSAccessKeyId     string
 	AWSSecretAccessKey string
-	ASWRegion          string
+	AWSRegion          string
 }
 
 var AppConfig *Config
@@ -30,7 +30,7 @@ func LoadConfig() {
 		BucketName:         getEnv("BUCKET_NAME", "fastfiles-bucket"),
 		AWSAccessKeyId:     getEnv("AWS_ACCESS_KEY_ID", ""),
 		AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY_ID", ""),
-		ASWRegion:          getEnv("AWS_REGION", "ap-south-1"),
+		AWSRegion:          getEnv("AWS_REGION", "ap-south-1"),
 	}
 }
 

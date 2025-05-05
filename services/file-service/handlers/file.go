@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -46,11 +47,12 @@ func UploadFile(uploader *utils.S3Uploader) gin.HandlerFunc {
 
 		err = db.InsertFileMetadata(c.Request.Context(), &metadata)
 		if err != nil {
+			fmt.Println("Insert to db error: ", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store metadata to database"})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully", "metadata": metadata})
+		c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully", "metadata": "metadata", "a": fileHeader, "b": userEmail})
 	}
 }
 

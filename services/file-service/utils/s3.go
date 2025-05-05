@@ -5,12 +5,12 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
-	"os"
 
 	ConfigEnv "github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/config"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
@@ -22,7 +22,12 @@ type S3Uploader struct {
 
 func NewS3Uploader() (*S3Uploader, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(ConfigEnv.AppConfig.ASWRegion),
+		config.WithRegion(ConfigEnv.AppConfig.AWSRegion),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			ConfigEnv.AppConfig.AWSAccessKeyId,
+			ConfigEnv.AppConfig.AWSSecretAccessKey,
+			"",
+		)),
 	)
 	if err != nil {
 		panic("Failed to load AWS config: " + err.Error())
@@ -32,7 +37,7 @@ func NewS3Uploader() (*S3Uploader, error) {
 
 	return &S3Uploader{
 		Client:     client,
-		BucketName: os.Getenv(ConfigEnv.AppConfig.BucketName),
+		BucketName: ConfigEnv.AppConfig.BucketName,
 	}, nil
 }
 
@@ -44,7 +49,6 @@ func (u *S3Uploader) UploadFile(file multipart.File, fileHeader *multipart.FileH
 	if err != nil {
 		return "", fmt.Errorf("failed to read file: %v", err)
 	}
-
 	_, err = u.Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(u.BucketName),
 		Key:         aws.String(key),

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/db"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/config"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/db"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/routes"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/utils"
 	"github.com/gin-gonic/gin"
