@@ -18,6 +18,7 @@ import (
 type S3Uploader struct {
 	Client     *s3.Client
 	BucketName string
+	Region     string
 }
 
 func NewS3Uploader() (*S3Uploader, error) {
@@ -38,6 +39,7 @@ func NewS3Uploader() (*S3Uploader, error) {
 	return &S3Uploader{
 		Client:     client,
 		BucketName: ConfigEnv.AppConfig.BucketName,
+		Region:     ConfigEnv.AppConfig.AWSRegion,
 	}, nil
 }
 
@@ -62,4 +64,17 @@ func (u *S3Uploader) UploadFile(file multipart.File, fileHeader *multipart.FileH
 
 	url := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", u.BucketName, key)
 	return url, nil
+}
+
+func (u *S3Uploader) CreateFolder(key string) error {
+	_, err := u.Client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket: aws.String(u.BucketName),
+		Key:    aws.String(key),
+		Body:   bytes.NewReader([]byte{}), // empty content
+	})
+	return err
+}
+
+func (u *S3Uploader) GetS3URL(key string) string {
+	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", u.BucketName, u.Region, key)
 }

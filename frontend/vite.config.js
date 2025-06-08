@@ -6,5 +6,10 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     historyApiFallback: true
+  },
+  resolve: {
+    alias: {
+      '~bootstrap': 'bootstrap',
+    }
   }
 })

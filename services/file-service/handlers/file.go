@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -11,7 +12,25 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func UploadFile(uploader *utils.S3Uploader) gin.HandlerFunc {
+func Upload(uploader *utils.S3Uploader) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uploadType := c.PostForm("uploadType")
+
+		userEmail := c.GetHeader("X-User-Email")
+		log.Println(uploadType)
+		switch uploadType {
+		case "file":
+			UploadFile(c, uploader, userEmail)
+		case "folder":
+			CreateFolder(c, uploader, userEmail)
+			c.JSON(http.StatusOK, gin.H{"response": "res"})
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid uploadType, must be 'file' or 'folder'"})
+		}
+	}
+}
+
+func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userEmail string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get user email from JWT (set by api-gateway middleware)
 		userEmail := c.GetHeader("X-User-Email")
@@ -54,6 +73,41 @@ func UploadFile(uploader *utils.S3Uploader) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully", "metadata": "metadata", "a": fileHeader, "b": userEmail})
 	}
+}
+
+func CreateFolder(c *gin.Context, uploader *utils.S3Uploader, userEmail string) {
+	folderKey := c.PostForm("folderKey")
+	if folderKey == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Missing folderKey"})
+		return
+	}
+
+	if folderKey[len(folderKey)-1] != '/' {
+		folderKey += "/"
+	}
+
+	err := uploader.CreateFolder(folderKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create folder"})
+		return
+	}
+
+	metadata := models.FileMetaData{
+		UserEmail:   userEmail,
+		Filename:    folderKey,
+		ContentType: "application/x-directory",
+		Size:        0,
+		S3Key:       folderKey,
+		S3URL:       uploader.GetS3URL(folderKey),
+		UploadedAt:  time.Now(),
+	}
+
+	// if err := db.InsertFileMetadata(c.Request.Context(), &metadata); err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"message": "DB error"})
+	// 	return
+	// }
+
+	c.JSON(http.StatusOK, gin.H{"message": "Folder created", "metadata": metadata})
 }
 
 func DownloadFile(c *gin.Context) {
