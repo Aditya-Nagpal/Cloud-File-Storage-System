@@ -98,7 +98,7 @@ func Login(c *gin.Context) {
 	}
 
 	// Generate access token short-lived
-	accessToken, err := jwt.GenerateWithExpiry(req.Email, config.AppConfig.JwtSecret, 15*time.Minute)
+	accessToken, err := jwt.GenerateWithExpiry(req.Email, config.AppConfig.JwtSecret, 60*time.Minute)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not access generate token", "error": err.Error()})
 		return

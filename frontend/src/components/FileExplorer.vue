@@ -1,7 +1,7 @@
 <template>
   <div class="p-4">
     <button
-      v-if="history.length"
+      v-if="canGoBack"
       class="btn btn-outline-secondary mb-3"
       @click="goBack"
     >
@@ -28,7 +28,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useFileStore } from '../store/file.js';
+
+const fileStore = useFileStore();
+
+onMounted(async () => {
+  await fileStore.fetchContents();
+});
 
 // Sample dummy file tree
 const root = {
@@ -42,19 +49,24 @@ const root = {
     ]},
     { name: 'image.png', type: 'file' }
   ]
-}
+};
 
-const history = ref([])
-const currentFolder = ref(root)
+const canGoBack = computed(() => fileStore.keyStack.length > 0);
 
-function handleItemClick(item) {
-  if (item.type === 'folder') {
-    history.value.push(currentFolder.value)
-    currentFolder.value = item
-  }
-}
+const currentFolderName = computed(() => {
+  const parts = fileStore.currentKey.split('/').filter(Boolean)
+  return parts.length ? parts[parts.length - 1] : 'root'
+})
 
-function goBack() {
-  currentFolder.value = history.value.pop()
-}
+// const handleItemClick = (item) => {
+//   if (item.type === 'folder') {
+//     fileStore.enterFolder(item.name);
+//     console.log(fileStore.currentKey);
+//   }
+// };
+
+const goBack = () => {
+  fileStore.goBack();
+  console.log(fileStore.currentKey);
+};
 </script>

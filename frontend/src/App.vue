@@ -27,16 +27,6 @@ onMounted(async () => {
     isLoading.value = false;
   }
 });
-
-const handleLogout = async () => {
-  try {
-    await auth.logout();
-    router.push('/user/login');
-  } catch (error) {
-    console.error('logout failed: ', error);
-    return;
-  }
-}
 </script>
 
 <template>
@@ -44,7 +34,6 @@ const handleLogout = async () => {
     Loading...
   </div>
   <div v-else>
-    <button @click="handleLogout">logout</button>
     <router-view />
   </div>
 </template>

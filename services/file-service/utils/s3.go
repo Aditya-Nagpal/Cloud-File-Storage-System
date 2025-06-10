@@ -43,13 +43,13 @@ func NewS3Uploader() (*S3Uploader, error) {
 	}, nil
 }
 
-func (u *S3Uploader) UploadFile(file multipart.File, fileHeader *multipart.FileHeader, key string) (string, error) {
+func (u *S3Uploader) UploadFile(file multipart.File, fileHeader *multipart.FileHeader, key string) error {
 	defer file.Close()
 
 	buffer := new(bytes.Buffer)
 	_, err := buffer.ReadFrom(file)
 	if err != nil {
-		return "", fmt.Errorf("failed to read file: %v", err)
+		return fmt.Errorf("failed to read file: %v", err)
 	}
 	_, err = u.Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(u.BucketName),
@@ -58,15 +58,10 @@ func (u *S3Uploader) UploadFile(file multipart.File, fileHeader *multipart.FileH
 		ContentType: aws.String(fileHeader.Header.Get("Content-Type")),
 		ACL:         types.ObjectCannedACLPublicRead, // For public read access
 	})
-	if err != nil {
-		return "", fmt.Errorf("failed to upload file to S3: %v", err)
-	}
-
-	url := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", u.BucketName, key)
-	return url, nil
+	return err
 }
 
-func (u *S3Uploader) CreateFolder(key string) error {
+func (u *S3Uploader) UploadFolder(key string) error {
 	_, err := u.Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(u.BucketName),
 		Key:    aws.String(key),
