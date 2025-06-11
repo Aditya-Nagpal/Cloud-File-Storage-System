@@ -9,20 +9,16 @@ export const useFileStore = defineStore('file', {
     }),
 
     actions: {
-        async fetchContents(key = '') {
+        async fetchContents(parentPath = '') {
             try {
-                return {
-                name: 'root',
-                    children: [
-                        { name: 'Documents', type: 'folder', children: [
-                        { name: 'Resume.pdf', type: 'file' },
-                        { name: 'Project', type: 'folder', children: [
-                            { name: 'code.js', type: 'file' }
-                        ]}
-                        ]},
-                        { name: 'image.png', type: 'file' }
-                    ]
-                };
+                const response = await API.get('/file/list', {
+                    params: {
+                        parentPath
+                    }
+                });
+                console.log('Fetched contents:', response?.data?.files);
+                this.contents = response?.data?.files;
+                return this.contents;
             } catch (error) {
                 console.error('Error fetching contents:', error);
                 throw error;
@@ -66,11 +62,14 @@ export const useFileStore = defineStore('file', {
         async enterFolder(folderName) {
             this.keyStack.push(this.currentKey);
             this.currentKey += folderName + '/';
+            console.log('Current key:', this.currentKey);
+            await this.fetchContents(this.currentKey);
         },
 
         async goBack() {
             if (this.keyStack.length > 0) {
                 this.currentKey = this.keyStack.pop();
+                await this.fetchContents(this.currentKey);
             }
         }
     }

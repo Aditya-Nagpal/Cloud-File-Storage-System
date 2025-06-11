@@ -67,6 +67,8 @@ func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userEmail string) {
 	parentPath := c.PostForm("folderKey")
 	parentPath = userEmail + "/" + parentPath
 	key := parentPath + fileHeader.Filename
+	log.Println((key))
+	log.Println((parentPath))
 
 	err = uploader.UploadFile(file, fileHeader, key)
 	if err != nil {

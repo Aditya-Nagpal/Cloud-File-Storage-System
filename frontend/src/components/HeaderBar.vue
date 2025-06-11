@@ -14,8 +14,11 @@
         </button>
         <ul class="dropdown-menu">
           <li><a class="dropdown-item" href="#" @click.prevent="triggerFileUpload">Upload File</a></li>
-          <li><a class="dropdown-item" href="#" @click.prevent="handleFolderUpload">Upload Folder</a></li>
+          <li><a class="dropdown-item" href="#" @click.prevent="showModal = true">Upload Folder</a></li>
         </ul>
+
+        <FolderModal :show="showModal" @close="showModal = false" />
+
         <!-- Hidden input for file selection -->
         <input
           type="file"
@@ -44,16 +47,19 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router'
+import FolderModal from './FolderModal.vue';
 import { useAuthStore } from '../store/auth.js';
 import { useFileStore } from '../store/file.js';
-import { useRouter, useRoute } from 'vue-router'
 
 const auth = useAuthStore();
 const fileStore = useFileStore();
 const router = useRouter();
 const fileInput = ref(null);
+const showModal = ref(false);
 
 const triggerFileUpload = () => {
+  console.log('triggerFileUpload called');
   fileInput.value.click();
 };
 
@@ -62,23 +68,11 @@ const handleFileSelected = async (event) => {
   if (!file) return;
 
   try {
-    console.log(fileStore.currentKey)
-    // await fileStore.uploadFile(file, fileStore.currentKey);
-    await fileStore.uploadFile(file, "user/");
-
-    // await fileStore.fetchContents(fileStore.currentKey);
+    console.log('we are here', fileStore.currentKey)
+    await fileStore.uploadFile(file, fileStore.currentKey);
+    await fileStore.fetchContents(fileStore.currentKey);
   } catch (error) {
     console.error('Upload failed:', error);
-  }
-};
-
-const handleFolderUpload = async () => {
-  try {
-    console.log(fileStore.currentKey)
-    const folderKey = "user/";
-    await fileStore.uploadFolder(folderKey, "data");
-  } catch (error) {
-    console.error('Error uploading folder:', error);
   }
 };
 
