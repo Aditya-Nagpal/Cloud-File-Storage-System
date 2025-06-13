@@ -67,3 +67,23 @@ func GetFilesByPrefix(ctx context.Context, userEmail string, prefix string) ([]L
 
 	return files, nil
 }
+
+func DeleteFileMetadata(ctx context.Context, userEmail string, parentPath string, fileName string, isFolder bool) error {
+	key := userEmail + "/" + parentPath + fileName
+	if isFolder {
+		key += "/"
+		query := `DELETE FROM file_metadata WHERE user_email = $1 AND (parent_path = $2 OR parent_path LIKE $3)`
+		likePattern := key + "%"
+		_, err := DB.Exec(ctx, query, userEmail, key, likePattern)
+		if err != nil {
+			return err
+		}
+
+		delSelf := `DELETE FROM file_metadata WHERE user_email = $1 AND parent_path = $2 AND filename = $3`
+		_, err = DB.Exec(ctx, delSelf, userEmail, parentPath, fileName)
+		return err
+	}
+	query := `DELETE FROM file_metadata WHERE user_email = $1 AND parent_path = $2 AND filename = $3`
+	_, err := DB.Exec(ctx, query, userEmail, parentPath, fileName)
+	return err
+}

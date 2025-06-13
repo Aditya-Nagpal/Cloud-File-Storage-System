@@ -47,19 +47,10 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async checkAuth() {
-      if(!this.accessToken){
-        try {
-          // Try to refresh token if non exists
-          await this.refreshAccessToken();
-        } catch (error) {
-          console.error('Token refresh failed during checkAuth:', error);
-          await this.logout();
-          throw error;
-        }
-      }
-
       try {
-        const response = await API.get(PROTECT_API);
+        console.log('Checking authentication...', this.accessToken);
+        const response = await API.get('/auth/protected');
+        console.log('Authentication check response:', response.data);
         return response.data;
       } catch (error) {
         console.error('Authentication check failed:', error);

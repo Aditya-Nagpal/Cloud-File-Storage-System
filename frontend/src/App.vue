@@ -9,6 +9,7 @@ const route = useRoute();
 const isLoading = ref(true);
 
 onMounted(async () => {
+  console.log('App mounted');
   await router.isReady();
   const publicPages = ['/user/login', '/user/signup'];
   try {

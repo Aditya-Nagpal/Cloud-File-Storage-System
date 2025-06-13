@@ -56,6 +56,7 @@ const handleFolderUpload = async () => {
     console.log('we are here 2', fileStore.currentKey)
     await fileStore.uploadFolder(fileStore.currentKey, folderName.value);
     await fileStore.fetchContents(fileStore.currentKey);
+    close();
   } catch (error) {
     console.error('Error uploading folder:', error);
   }

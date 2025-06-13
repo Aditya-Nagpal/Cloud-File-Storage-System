@@ -70,6 +70,40 @@ func (u *S3Uploader) UploadFolder(key string) error {
 	return err
 }
 
+func (u *S3Uploader) DeleteObject(prefix string, isFolder bool) error {
+	if isFolder {
+		listInput := &s3.ListObjectsV2Input{
+			Bucket: aws.String(u.BucketName),
+			Prefix: aws.String(prefix),
+		}
+
+		output, err := u.Client.ListObjectsV2(context.TODO(), listInput)
+		if err != nil {
+			return err
+		}
+
+		var objects []types.ObjectIdentifier
+		for _, obj := range output.Contents {
+			objects = append(objects, types.ObjectIdentifier{Key: obj.Key})
+		}
+
+		if len(objects) == 0 {
+			return fmt.Errorf("no objects found in the folder")
+		}
+
+		_, err = u.Client.DeleteObjects(context.TODO(), &s3.DeleteObjectsInput{
+			Bucket: aws.String(u.BucketName),
+			Delete: &types.Delete{Objects: objects},
+		})
+		return err
+	}
+	_, err := u.Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		Bucket: aws.String(u.BucketName),
+		Key:    aws.String(prefix),
+	})
+	return err
+}
+
 func (u *S3Uploader) GetS3URL(key string) string {
 	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", u.BucketName, u.Region, key)
 }
