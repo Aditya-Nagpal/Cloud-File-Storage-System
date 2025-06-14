@@ -5,8 +5,8 @@ import API from '../api/axios';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const SIGN_IN_API = BASE_URL + '/auth/login';
 const SIGN_UP_API = BASE_URL + '/auth/register';
-const LOGOUT_API = BASE_URL + '/auth/logout';
-const PROTECT_API = BASE_URL+'/auth/protected';
+const PROTECT_API = '/auth/protected';
+const LOGOUT_API = '/auth/logout';
 const REFRESH_API = BASE_URL + '/auth/refresh';
 
 export const useAuthStore = defineStore('auth', {
@@ -49,7 +49,7 @@ export const useAuthStore = defineStore('auth', {
     async checkAuth() {
       try {
         console.log('Checking authentication...', this.accessToken);
-        const response = await API.get('/auth/protected');
+        const response = await API.get(PROTECT_API);
         console.log('Authentication check response:', response.data);
         return response.data;
       } catch (error) {
@@ -61,9 +61,7 @@ export const useAuthStore = defineStore('auth', {
 
     async logout() {
       try {
-        await axios.get(LOGOUT_API, {
-          withCredentials: true
-        })
+        await API.get(LOGOUT_API)
       } catch (error) {
         console.error('Logout failed:', error);
         throw error;

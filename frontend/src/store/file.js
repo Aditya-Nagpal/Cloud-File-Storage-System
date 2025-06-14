@@ -9,11 +9,11 @@ export const useFileStore = defineStore('file', {
     }),
 
     actions: {
-        async fetchContents(parentPath = '') {
+        async fetchContents() {
             try {
                 const response = await API.get('/file/list', {
                     params: {
-                        parentPath
+                        parentPath: this.currentKey
                     }
                 });
                 console.log('Fetched contents:', response?.data?.files);
@@ -25,11 +25,11 @@ export const useFileStore = defineStore('file', {
             }
         },
 
-        async uploadFile(file, folderKey) {
+        async uploadFile(file) {
             const formData = new FormData();
             formData.append('uploadType', 'file');
             formData.append('file', file);
-            formData.append('folderKey', folderKey);
+            formData.append('folderKey', this.currentKey);
             try {
                 const response = await API.post('/file/upload', formData, {
                     headers: {
@@ -44,9 +44,9 @@ export const useFileStore = defineStore('file', {
             }
         },
 
-        async uploadFolder(folderKey, folderName) {
+        async uploadFolder(folderName) {
             try {
-                const response = await API.post('/file/upload', { uploadType: 'folder', folderKey, folderName }, {
+                const response = await API.post('/file/upload', { uploadType: 'folder', folderKey: this.currentKey, folderName }, {
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     }
@@ -70,6 +70,20 @@ export const useFileStore = defineStore('file', {
             if (this.keyStack.length > 0) {
                 this.currentKey = this.keyStack.pop();
                 await this.fetchContents(this.currentKey);
+            }
+        },
+
+        async deleteContent(fileName, type) {
+            try {
+                console.log('Deleting content:', fileName, type, this.currentKey);
+                const response = await API.delete('/file/delete', {
+                    data: { parentPath: this.currentKey, fileName, type }
+                });
+                console.log(response.data);
+                return response.data;
+            } catch (error) {
+                console.error('Error deleting content:', error);
+                throw error;
             }
         }
     }

@@ -30,32 +30,32 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { useFileStore } from '../store/file'
+import { ref, watch } from 'vue';
+import { useFileStore } from '../store/file';
 
 const props = defineProps({
   show: Boolean
-})
+});
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close']);
 
-const folderName = ref('')
-const fileStore = useFileStore()
+const folderName = ref('');
+const fileStore = useFileStore();
 
 watch(props, () => {
-  if (!props.show) folderName.value = ''
-})
+  if (!props.show) folderName.value = '';
+});
 
 const close = () => {
-  folderName.value = ''
-  emit('close')
-}
+  folderName.value = '';
+  emit('close');
+};
 
 const handleFolderUpload = async () => {
   try {
-    console.log('we are here 2', fileStore.currentKey)
-    await fileStore.uploadFolder(fileStore.currentKey, folderName.value);
-    await fileStore.fetchContents(fileStore.currentKey);
+    console.log('we are here 2', fileStore.currentKey);
+    await fileStore.uploadFolder(folderName.value);
+    await fileStore.fetchContents();
     close();
   } catch (error) {
     console.error('Error uploading folder:', error);

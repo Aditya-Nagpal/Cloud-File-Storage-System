@@ -118,10 +118,7 @@ func Login(c *gin.Context) {
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
 		"user": gin.H{
-			"id":    id,
-			"name":  name,
 			"email": req.Email,
-			"age":   age,
 		},
 	})
 }

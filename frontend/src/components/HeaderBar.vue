@@ -46,8 +46,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router'
+import { ref } from 'vue';
+import { useRouter } from 'vue-router'
 import FolderModal from './FolderModal.vue';
 import { useAuthStore } from '../store/auth.js';
 import { useFileStore } from '../store/file.js';
@@ -69,8 +69,8 @@ const handleFileSelected = async (event) => {
 
   try {
     console.log('we are here', fileStore.currentKey)
-    await fileStore.uploadFile(file, fileStore.currentKey);
-    await fileStore.fetchContents(fileStore.currentKey);
+    await fileStore.uploadFile(file);
+    await fileStore.fetchContents();
   } catch (error) {
     console.error('Upload failed:', error);
   }

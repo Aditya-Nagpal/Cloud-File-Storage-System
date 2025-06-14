@@ -19,8 +19,10 @@ func ListFilesByPrefix() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"message": "X-User-Email header is missing"})
 			return
 		}
+
 		parentPath := c.Query("parentPath")
 		parentPath = userEmail + "/" + parentPath
+
 		files, err := db.GetFilesByPrefix(c.Request.Context(), userEmail, parentPath)
 		if err != nil {
 			log.Fatalln(err)
