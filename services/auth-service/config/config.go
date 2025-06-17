@@ -22,17 +22,13 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		Port:        getEnv("PORT", ":8001"),
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:bhaibhai10@localhost:5432/FastFiles"),
-		JwtSecret:   getEnv("JWT_SECRET", "Aditya_Nagpal"),
+		Port:        getEnv("PORT"),
+		DatabaseURL: getEnv("DATABASE_URL"),
+		JwtSecret:   getEnv("JWT_SECRET"),
 	}
 }
 
-func getEnv(key, fallback string) string {
+func getEnv(key string) string {
 	value := os.Getenv(key)
-	if value == "" {
-		os.Setenv(key, fallback)
-		return fallback
-	}
 	return value
 }

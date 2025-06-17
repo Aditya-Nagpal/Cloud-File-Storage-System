@@ -25,20 +25,16 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		AuthServiceUrl:  getEnv("AUTH_SERVICE_URL", "http://localhost:8001"),
-		FileServiceUrl:  getEnv("FILE_SERVICE_URL", "http://localhost:8002"),
-		UserServiceUrl:  getEnv("USER_SERVICE_URL", "http://localhost:8003"),
-		Port:            getEnv("PORT", ":8000"),
-		FrontendBaseUrl: getEnv("FRONTEND_BASE_URL", "http://localhost:5173"),
-		JwtSecret:       getEnv("JWT_SECRET", "Aditya_Nagpal"),
+		AuthServiceUrl:  getEnv("AUTH_SERVICE_URL"),
+		FileServiceUrl:  getEnv("FILE_SERVICE_URL"),
+		UserServiceUrl:  getEnv("USER_SERVICE_URL"),
+		Port:            getEnv("PORT"),
+		FrontendBaseUrl: getEnv("FRONTEND_BASE_URL"),
+		JwtSecret:       getEnv("JWT_SECRET"),
 	}
 }
 
-func getEnv(key, fallback string) string {
+func getEnv(key string) string {
 	value := os.Getenv(key)
-	if value == "" {
-		os.Setenv(key, fallback)
-		return fallback
-	}
 	return value
 }
