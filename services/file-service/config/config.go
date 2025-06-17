@@ -25,20 +25,16 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		Port:               getEnv("PORT", ":8002"),
-		DatabaseURL:        getEnv("DATABASE_URL", "postgres://postgres:bhaibhai10@localhost:5432/FastFiles"),
-		BucketName:         getEnv("BUCKET_NAME", "fastfiles-bucket"),
-		AWSAccessKeyId:     getEnv("AWS_ACCESS_KEY_ID", ""),
-		AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY_ID", ""),
-		AWSRegion:          getEnv("AWS_REGION", "ap-south-1"),
+		Port:               getEnv("PORT"),
+		DatabaseURL:        getEnv("DATABASE_URL"),
+		BucketName:         getEnv("BUCKET_NAME"),
+		AWSAccessKeyId:     getEnv("AWS_ACCESS_KEY_ID"),
+		AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY_ID"),
+		AWSRegion:          getEnv("AWS_REGION"),
 	}
 }
 
-func getEnv(key, fallback string) string {
+func getEnv(key string) string {
 	value := os.Getenv(key)
-	if value == "" {
-		os.Setenv(key, fallback)
-		return fallback
-	}
 	return value
 }

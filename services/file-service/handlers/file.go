@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -25,8 +24,7 @@ func ListFilesByPrefix() gin.HandlerFunc {
 
 		files, err := db.GetFilesByPrefix(c.Request.Context(), userEmail, parentPath)
 		if err != nil {
-			log.Fatalln(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve files from database"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve files from database", "error": err.Error()})
 			return
 		}
 
@@ -59,7 +57,7 @@ func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userEmail string) {
 	// Get uploaded file
 	file, fileHeader, err := c.Request.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to get uploaded file"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to get uploaded file", "error": err.Error()})
 		return
 	}
 	defer file.Close()
@@ -70,7 +68,7 @@ func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userEmail string) {
 
 	err = uploader.UploadFile(file, fileHeader, key)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to upload file to S3"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to upload file to S3", "error": err.Error()})
 		return
 	}
 
@@ -87,8 +85,7 @@ func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userEmail string) {
 
 	err = db.InsertFileMetadata(c.Request.Context(), &metadata)
 	if err != nil {
-		fmt.Println("Insert to db error: ", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store metadata to database"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store metadata to database", "error": err.Error()})
 		return
 	}
 
@@ -103,7 +100,7 @@ func uploadFolder(c *gin.Context, uploader *utils.S3Uploader, userEmail string) 
 
 	err := uploader.UploadFolder(key)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create folder"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create folder", "error": err.Error()})
 		return
 	}
 
@@ -119,7 +116,7 @@ func uploadFolder(c *gin.Context, uploader *utils.S3Uploader, userEmail string) 
 	}
 
 	if err := db.InsertFileMetadata(c.Request.Context(), &metadata); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "DB error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store metadata to database", "error": err.Error()})
 		return
 	}
 
@@ -136,11 +133,11 @@ type DeleteRequest struct {
 	Type       string `json:"type"`
 }
 
-func DeleteFile(uploader *utils.S3Uploader) gin.HandlerFunc {
+func DeleteContent(uploader *utils.S3Uploader) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req DeleteRequest
 		if err := c.ShouldBindJSON(&req); err != nil || req.FileName == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body"})
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body", "error": err.Error()})
 			return
 		}
 
@@ -158,14 +155,13 @@ func DeleteFile(uploader *utils.S3Uploader) gin.HandlerFunc {
 		}
 
 		if err := uploader.DeleteObject(key, isFolder); err != nil {
-			log.Printf("Failed to delete s3 object %s: %v", key, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete object from S3"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete object from S3", "error": err.Error()})
 			return
 		}
 
 		if err := db.DeleteFileMetadata(c.Request.Context(), userEmail, req.ParentPath, req.FileName, isFolder); err != nil {
 			log.Printf("Failed to delete metadata for %s: %v", key, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete metadata from database"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete metadata from database", "error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "deleted successfully", "a": req, "key": key, "isFolder": isFolder})

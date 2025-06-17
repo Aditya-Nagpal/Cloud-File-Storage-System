@@ -23,23 +23,40 @@ func SetupRoutes(r *gin.Engine) {
 		panic(err)
 	}
 
+	// USER-SERVICE
+	userServiceUrl, err := url.Parse((config.AppConfig.UserServiceUrl))
+	if err != nil {
+		panic(err)
+	}
+
 	// Reverse proxy handlers
 	authServiceProxy := httputil.NewSingleHostReverseProxy(authServiceUrl)
 	fileServiceProxy := httputil.NewSingleHostReverseProxy(fileServiceUrl)
+	userServiceProxy := httputil.NewSingleHostReverseProxy(userServiceUrl)
 
+	// PUBLIC AUTH ROUTES
 	r.Any("/auth/*proxyPath", func(c *gin.Context) {
 		c.Request.URL.Path = c.Param("proxyPath")
 		authServiceProxy.ServeHTTP(c.Writer, c.Request)
 	})
 
-	// Protected file routes
-	// Assumption is auth-service doesn't require middleware check
-	protected := r.Group("/file")
-	protected.Use(middleware.JWTMiddleware(config.AppConfig.JwtSecret))
+	// PROTECTED FILE ROUTES
+	fileGroup := r.Group("/file")
+	fileGroup.Use(middleware.JWTMiddleware(config.AppConfig.JwtSecret))
 	{
-		protected.Any("/*proxyPath", func(c *gin.Context) {
+		fileGroup.Any("/*proxyPath", func(c *gin.Context) {
 			c.Request.URL.Path = c.Param("proxyPath")
 			fileServiceProxy.ServeHTTP(c.Writer, c.Request)
+		})
+	}
+
+	// PROTECTED USER ROUTES
+	userGroup := r.Group("/user")
+	userGroup.Use(middleware.JWTMiddleware(config.AppConfig.JwtSecret))
+	{
+		userGroup.Any("/*proxyPath", func(c *gin.Context) {
+			c.Request.URL.Path = c.Param("proxyPath")
+			userServiceProxy.ServeHTTP(c.Writer, c.Request)
 		})
 	}
 }
