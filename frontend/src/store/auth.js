@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { resetAllStores, resetLocalStorage } from './reset';
 import axios from 'axios';
 import API from '../api/axios';
 
@@ -11,7 +12,6 @@ const REFRESH_API = BASE_URL + '/auth/refresh';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: JSON.parse(localStorage.getItem('user')) || null,
     accessToken: localStorage.getItem('accessToken') || null
   }),
 
@@ -33,14 +33,12 @@ export const useAuthStore = defineStore('auth', {
         }, {
           withCredentials: true
         });
-        const { user, accessToken } = response.data;
-        this.user = user;
+        const { accessToken } = response.data;
         this.accessToken = accessToken;
 
         // save to local storage
         localStorage.setItem('accessToken', this.accessToken);
-        localStorage.setItem('user', JSON.stringify(this.user));
-        return { user, accessToken };
+        return { accessToken };
       } catch (error) {
         throw error;
       }
@@ -67,12 +65,8 @@ export const useAuthStore = defineStore('auth', {
         throw error;
       }
 
-      this.user = null;
-      this.accessToken = null;
-
-      // remove from local storage
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
+      resetAllStores();
+      resetLocalStorage();
     },
 
     async refreshAccessToken() {

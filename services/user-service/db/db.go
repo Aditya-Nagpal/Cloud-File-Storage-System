@@ -25,7 +25,7 @@ func ConnectDatabase() {
 	fmt.Println("Connected to database successfully")
 }
 
-func GetUserByEmail(ctx context.Context, userEmail string) (*models.User, error) {
+func GetProfleByEmail(ctx context.Context, userEmail string) (*models.User, error) {
 	query := `SELECT email, name, age FROM users WHERE email = $1`
 	row := DB.QueryRow(ctx, query, userEmail)
 
@@ -35,4 +35,11 @@ func GetUserByEmail(ctx context.Context, userEmail string) (*models.User, error)
 		return nil, err
 	}
 	return &user, nil
+}
+
+func UpdateProfileDetails(ctx context.Context, user *models.UpdateUser) error {
+	query := `UPDATE users SET name = $1, age = $2 WHERE email = $3`
+
+	_, err := DB.Exec(ctx, query, user.Name, user.Age, user.Email)
+	return err
 }

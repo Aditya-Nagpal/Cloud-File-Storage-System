@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"mime/multipart"
+	"net/http"
 
 	ConfigEnv "github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/config"
 
@@ -46,15 +46,10 @@ func NewS3Uploader() (*S3Uploader, error) {
 func (u *S3Uploader) UploadFile(file multipart.File, fileHeader *multipart.FileHeader, key string) error {
 	defer file.Close()
 
-	buffer := new(bytes.Buffer)
-	_, err := buffer.ReadFrom(file)
-	if err != nil {
-		return fmt.Errorf("failed to read file: %v", err)
-	}
-	_, err = u.Client.PutObject(context.TODO(), &s3.PutObjectInput{
+	_, err := u.Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(u.BucketName),
 		Key:         aws.String(key),
-		Body:        bytes.NewReader(buffer.Bytes()),
+		Body:        file,
 		ContentType: aws.String(fileHeader.Header.Get("Content-Type")),
 		ACL:         types.ObjectCannedACLPublicRead, // For public read access
 	})
@@ -65,7 +60,7 @@ func (u *S3Uploader) UploadFolder(key string) error {
 	_, err := u.Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(u.BucketName),
 		Key:    aws.String(key),
-		Body:   bytes.NewReader([]byte{}), // empty content
+		Body:   http.NoBody, // empty content
 	})
 	return err
 }

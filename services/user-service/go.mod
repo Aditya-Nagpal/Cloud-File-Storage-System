@@ -3,6 +3,7 @@ module github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service
 go 1.24.2
 
 require (
+	github.com/aws/aws-sdk-go-v2 v1.36.5 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect

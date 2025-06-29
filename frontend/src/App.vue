@@ -1,9 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from './store/auth';
+import { useUserStore } from './store/user';
 import { useRouter, useRoute } from 'vue-router'
 
 const auth = useAuthStore();
+const user = useUserStore();
 const router = useRouter();
 const route = useRoute();
 const isLoading = ref(true);
@@ -15,6 +17,7 @@ onMounted(async () => {
   try {
     await auth.checkAuth();
     console.log('checkAuth success');
+    await user.fetchUserProfile();
     if(publicPages.includes(route.path)){
       router.push('/');
       return;

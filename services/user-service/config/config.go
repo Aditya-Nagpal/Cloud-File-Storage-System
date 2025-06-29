@@ -8,8 +8,12 @@ import (
 )
 
 type Config struct {
-	Port        string
-	DatabaseURL string
+	Port               string
+	DatabaseURL        string
+	BucketName         string
+	AWSAccessKeyId     string
+	AWSSecretAccessKey string
+	AWSRegion          string
 }
 
 var AppConfig *Config
@@ -21,8 +25,12 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		Port:        getEnv("PORT"),
-		DatabaseURL: getEnv("DATABASE_URL"),
+		Port:               getEnv("PORT"),
+		DatabaseURL:        getEnv("DATABASE_URL"),
+		BucketName:         getEnv("BUCKET_NAME"),
+		AWSAccessKeyId:     getEnv("AWS_ACCESS_KEY_ID"),
+		AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY_ID"),
+		AWSRegion:          getEnv("AWS_REGION"),
 	}
 }
 
