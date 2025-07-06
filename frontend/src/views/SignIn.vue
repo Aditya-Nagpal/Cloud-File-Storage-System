@@ -13,10 +13,12 @@
 <script setup>
 import { ref } from 'vue';
 import { useAuthStore } from '../store/auth';
+import { useUserStore } from '../store/user';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue3-toastify';
 
 const auth = useAuthStore();
+const user = useUserStore();
 const router = useRouter();
 
 const email = ref('');
@@ -28,6 +30,13 @@ const handleSignIn = async () => {
     toast.success('Login successful');
     resetForm();
     router.push('/'); // redirect after login
+    try {
+      console.log('Fetching user profile ...');
+      await user.fetchUserProfile();
+      console.log('User profile fetched:', user.user);
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+    }
   } catch (error) {
     console.error('Error in handleSignIn', error);
     toast.error(error.response.data.message);

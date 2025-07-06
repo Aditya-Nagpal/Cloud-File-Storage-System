@@ -17,12 +17,24 @@ onMounted(async () => {
   try {
     await auth.checkAuth();
     console.log('checkAuth success');
-    await user.fetchUserProfile();
+    if(!user.user){
+      console.log('User not found, fetching user profile...');
+      try {
+        console.log('Fetching user profile...');
+        await user.fetchUserProfile();
+        console.log('User profile fetched:', user.user);
+      } catch (error) {
+        console.error('Error in fetchUserProfile:', error);
+      }
+    } else {
+      console.log('User already exists:', user.user);
+    }
     if(publicPages.includes(route.path)){
       router.push('/');
       return;
     }
   } catch (error) {
+    console.error('Authentication check failed:', error);
     if(!publicPages.includes(route.path)) {
       router.push('/user/login');
       return;

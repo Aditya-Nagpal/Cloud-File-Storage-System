@@ -5,7 +5,7 @@
 
         <div class="modal-header">
           <h5 class="modal-title text-danger">Confirm Delete</h5>
-          <button type="button" class="btn-close" @click="emit('close')" />
+          <button type="button" class="btn-close" @click="emit('close', false)" />
         </div>
 
         <div class="modal-body">
@@ -16,8 +16,8 @@
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="emit('close')">No</button>
-          <button class="btn btn-danger" @click="deleteItem(props.item)">Yes, Delete</button>
+          <button class="btn btn-secondary" @click="emit('close', false)">No</button>
+          <button class="btn btn-danger" @click="deleteEntity(props.item)">Yes, Delete</button>
         </div>
 
       </div>
@@ -37,14 +37,18 @@ const emit = defineEmits(['close']);
 
 const fileStore = useFileStore();
 
-const deleteItem =  async (item) => {
+const deleteEntity =  async (item) => {
   try {
     console.log('Deleting item:', item);
+    close();
     await fileStore.deleteContent(item.filename, item.type);
     await fileStore.fetchContents();
-    emit('close');
   } catch (error) {
     console.error('Error deleting item:', error);
   }
+};
+
+const close = () => {
+  emit('close');
 };
 </script>

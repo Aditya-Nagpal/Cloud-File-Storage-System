@@ -12,7 +12,7 @@ const REFRESH_API = BASE_URL + '/auth/refresh';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    accessToken: localStorage.getItem('accessToken') || null
+    accessToken: localStorage.getItem('accessToken') || null,
   }),
 
   actions: {
@@ -65,8 +65,8 @@ export const useAuthStore = defineStore('auth', {
         throw error;
       }
 
-      resetAllStores();
       resetLocalStorage();
+      resetAllStores();
     },
 
     async refreshAccessToken() {

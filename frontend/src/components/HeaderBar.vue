@@ -13,19 +13,13 @@
           Upload
         </button>
         <ul class="dropdown-menu">
-          <li><a class="dropdown-item" href="#" @click.prevent="triggerFileUpload">Upload File</a></li>
-          <li><a class="dropdown-item" href="#" @click.prevent="showModal = true">Upload Folder</a></li>
+          <li><a class="dropdown-item" href="#" @click.prevent="showFileModal = true">Upload File</a></li>
+          <li><a class="dropdown-item" href="#" @click.prevent="showFolderModal = true">Upload Folder</a></li>
         </ul>
 
-        <FolderModal :show="showModal" @close="showModal = false" />
+        <FileModal :show="showFileModal" @close="showFileModal = false" />
+        <FolderModal :show="showFolderModal" @close="showFolderModal = false" />
 
-        <!-- Hidden input for file selection -->
-        <input
-          type="file"
-          ref="fileInput"
-          class="d-none"
-          @change="handleFileSelected"
-        />
       </div>
 
       <!-- Profile dropdown -->
@@ -37,7 +31,7 @@
           data-bs-toggle="dropdown"
         />
         <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="#">View Profile</a></li>
+          <li><a class="dropdown-item" href="/user/profile">View Profile</a></li>
           <li><a class="dropdown-item" href="#" @click="handleLogout">Logout</a></li>
         </ul>
       </div>
@@ -49,32 +43,13 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router'
 import FolderModal from './FolderModal.vue';
+import FileModal from './FileModal.vue';
 import { useAuthStore } from '../store/auth.js';
-import { useFileStore } from '../store/file.js';
 
 const auth = useAuthStore();
-const fileStore = useFileStore();
 const router = useRouter();
-const fileInput = ref(null);
-const showModal = ref(false);
-
-const triggerFileUpload = () => {
-  console.log('triggerFileUpload called');
-  fileInput.value.click();
-};
-
-const handleFileSelected = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  try {
-    console.log('we are here', fileStore.currentKey)
-    await fileStore.uploadFile(file);
-    await fileStore.fetchContents();
-  } catch (error) {
-    console.error('Upload failed:', error);
-  }
-};
+const showFileModal = ref(false);
+const showFolderModal = ref(false);
 
 const handleLogout = async () => {
   try {

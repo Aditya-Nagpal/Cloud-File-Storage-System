@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service/db"
@@ -40,7 +39,6 @@ func UpdateProfileDetails(c *gin.Context) {
 	}
 
 	update.Email = userEmail
-	log.Println("Updating profile for user:", update)
 
 	if err := db.UpdateProfileDetails(c.Request.Context(), update); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update profile", "error": err.Error()})

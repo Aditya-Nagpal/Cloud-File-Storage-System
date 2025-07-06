@@ -4,8 +4,8 @@ import { useFileStore } from './file';
 
 export const resetAllStores = () => {
   useAuthStore().$reset();
-  useUserStore().$reset();
   useFileStore().$reset();
+  useUserStore().$reset();
 };
 
 export const resetLocalStorage = () => {

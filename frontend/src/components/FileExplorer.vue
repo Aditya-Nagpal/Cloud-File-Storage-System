@@ -40,12 +40,12 @@
             <li><a class="dropdown-item" href="#" @click.prevent="showInfo(item)">File Information</a></li>
           </ul>
 
-          <FileInfoModal :show="showInfoModal" :item="selectedItem" @close="showInfoModal = false" />
+          <FileInfoModal :show="showInfoModal" :item="selectedItem" @close="handleInfoModalClose" />
 
           <ConfirmDeleteModal
             :show="showDeleteModal"
             :item="selectedItemToDelete"
-            @close="showDeleteModal = false"
+            @close="handleDeleteModalClose"
           />
 
         </div>
@@ -73,6 +73,18 @@ onMounted(async () => {
 });
 
 const canGoBack = computed(() => fileStore.keyStack.length > 0);
+
+const handleInfoModalClose = () => {
+  console.log('Info modal closed');
+  showInfoModal.value = false;
+  selectedItem.value = null;
+};
+
+const handleDeleteModalClose = () => {
+  console.log('Delete modal closed');
+  showDeleteModal.value = false;
+  selectedItemToDelete.value = null;
+};
 
 const showInfo = (item) => {
   selectedItem.value = item
