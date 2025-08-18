@@ -3,7 +3,6 @@
     <h4 class="mt-2 fw-bold">FastFiles</h4>
 
     <div class="d-flex align-items-center gap-3">
-      <!-- Upload dropdown -->
       <div class="dropdown">
         <button
           class="btn btn-primary dropdown-toggle"
@@ -22,10 +21,9 @@
 
       </div>
 
-      <!-- Profile dropdown -->
       <div class="dropdown">
         <img
-          src="../images/person.png"
+          :src="displayPictureUrl"
           class="rounded-circle"
           style="width: 40px; height: 40px; cursor: pointer;"
           data-bs-toggle="dropdown"
@@ -40,16 +38,24 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router'
 import FolderModal from './FolderModal.vue';
 import FileModal from './FileModal.vue';
+import defaultImage from '../images/person.png';
 import { useAuthStore } from '../store/auth.js';
+import { useUserStore } from '../store/user.js';
 
 const auth = useAuthStore();
+const userStore = useUserStore();
+const user = computed(() => userStore.user);
 const router = useRouter();
 const showFileModal = ref(false);
 const showFolderModal = ref(false);
+
+const displayPictureUrl = computed(() => {
+  return user?.value?.displayPicture || defaultImage;
+});
 
 const handleLogout = async () => {
   try {

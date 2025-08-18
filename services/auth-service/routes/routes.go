@@ -19,4 +19,6 @@ func SetupRoutes(r *gin.Engine) {
 			"user":    email,
 		})
 	})
+
+	r.POST("/check-email", handlers.CheckEmailExistance)
 }

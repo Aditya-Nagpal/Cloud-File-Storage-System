@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/cache"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/config"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/db"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/routes"
@@ -12,6 +13,7 @@ func main() {
 	config.LoadConfig()
 
 	db.ConnectDatabase()
+	cache.InitRedis()
 
 	r := gin.Default()
 

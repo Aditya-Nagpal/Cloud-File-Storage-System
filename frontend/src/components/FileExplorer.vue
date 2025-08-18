@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue';
 import { useFileStore } from '../store/file.js';
 import FileInfoModal from './FileInfoModal.vue';
 import ConfirmDeleteModal from './ConfirmDeleteModal.vue';

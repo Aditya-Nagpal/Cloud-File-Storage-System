@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import API from '../api/axios';
 
 const FETCH_USER_API = `/user/profile`;
-const UPDATE_USER_API = `/user/update`;``
+const UPDATE_USER_API = `/user/profile`;
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -24,12 +24,31 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    async updateDisplayPicture(payload) {
+      try {
+        const response = await API.patch(`${UPDATE_USER_API}?dp=true`, payload, {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          }
+        });
+        console.log('Display picture updated:', response.data);
+        this.user.displayPicture = response.data.displayPicture;
+        localStorage.setItem('user', JSON.stringify(this.user));
+        return true;
+      } catch (error) {
+        console.error('Failed to update dp: ', error);
+        throw error;
+      }
+    },
+
     async updateUserProfile(payload) {
       try {
-        const response = await API.put(UPDATE_USER_API, payload);
-        this.user = response.data;
+        console.log('Updating user profile with payload:', payload);
+        const response = await API.patch(`${UPDATE_USER_API}?dp=false`, payload);
+        console.log('User profile updated:', response.data);
+        this.user = { ...this.user, ...response.data.updatedUser }
         localStorage.setItem('user', JSON.stringify(this.user));
-        return this.user;
+        return true;
       } catch (error) {
         console.error('Failed to update user:', error);
         throw error;

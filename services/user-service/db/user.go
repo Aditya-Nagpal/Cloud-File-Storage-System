@@ -1,0 +1,40 @@
+package db
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service/models"
+)
+
+func GetProfleByEmail(ctx context.Context, userEmail string) (*models.User, error) {
+	query := `SELECT email, name, age, display_picture FROM users WHERE email = $1`
+	row := DB.QueryRow(ctx, query, userEmail)
+
+	var user models.User
+	err := row.Scan(&user.Email, &user.Name, &user.Age, &user.DisplayPicture)
+	if err != nil {
+		return nil, err
+	}
+	// log.Printf("Retrieved user profile:", &user)
+	return &user, nil
+}
+
+func UpdateDisplayPicture(ctx context.Context, userEmail, displayPictureURL string) error {
+	query := `UPDATE users SET display_picture = $1 WHERE email = $2`
+	_, err := DB.Exec(ctx, query, displayPictureURL, userEmail)
+	if err != nil {
+		return fmt.Errorf("failed to update display picture: %w", err)
+	}
+	return nil
+}
+
+func UpdateProfileDetails(ctx context.Context, user *models.UpdateUser) error {
+	fmt.Println("Updating profile for user:", user)
+	query := `UPDATE users SET name = $1, age = $2 WHERE email = $3`
+	_, err := DB.Exec(ctx, query, user.Name, user.Age, user.Email)
+	if err != nil {
+		return fmt.Errorf("failed to update profile details: %w", err)
+	}
+	return nil
+}
