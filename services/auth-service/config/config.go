@@ -12,6 +12,7 @@ type Config struct {
 	DatabaseURL string
 	JwtSecret   string
 	RedisURL    string
+	OtpDigits   string
 }
 
 var AppConfig *Config
@@ -27,6 +28,7 @@ func LoadConfig() {
 		DatabaseURL: getEnv("DATABASE_URL"),
 		JwtSecret:   getEnv("JWT_SECRET"),
 		RedisURL:    getEnv("REDIS_URL"),
+		OtpDigits:   getEnv("OTP_DIGITS"),
 	}
 }
 
