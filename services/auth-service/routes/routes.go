@@ -20,5 +20,6 @@ func SetupRoutes(r *gin.Engine) {
 		})
 	})
 
-	r.POST("/check-email", handlers.CheckEmailExistance)
+	forgotGroup := r.Group("/forgot-password")
+	SetupForgotPasswordRoutes(forgotGroup)
 }

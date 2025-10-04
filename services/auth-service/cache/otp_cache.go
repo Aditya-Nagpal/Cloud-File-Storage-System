@@ -10,15 +10,16 @@ import (
 
 // OTPFlow represents the Redis-stored flow structure (JSON stored as value)
 type OTPFlow struct {
-	FlowID       string    `json:"flow_id"`
-	Email        string    `json:"email"`
-	OtpHash      string    `json:"otp_hash"`
-	OtpSalt      string    `json:"otp_salt"`
-	OtpExpiresAt time.Time `json:"otp_expires_at"`
-	ResendCount  int       `json:"resend_count"`
-	Attempts     int       `json:"attempts"`
-	Status       string    `json:"status"` // ACTIVE | EXPIRED | COMPLETED
-	CreatedAt    time.Time `json:"created_at"`
+	FlowID        string    `json:"flow_id"`
+	Email         string    `json:"email"`
+	OtpHash       string    `json:"otp_hash"`
+	OtpSalt       string    `json:"otp_salt"`
+	OtpExpiresAt  time.Time `json:"otp_expires_at"`
+	ResendCount   int       `json:"resend_count"`
+	Attempts      int       `json:"attempts"`
+	Status        string    `json:"status"` // ACTIVE | EXPIRED | COMPLETED | CANCELLED
+	CreatedAt     time.Time `json:"created_at"`
+	CooldownUntil time.Time `json:"cooldown_until"`
 }
 
 // Redis key helpers
@@ -46,11 +47,11 @@ func GetFlow(ctx context.Context, flowId string) (*OTPFlow, error) {
 		}
 		return nil, err
 	}
-	var f OTPFlow
-	if err := json.Unmarshal([]byte(val), &f); err != nil {
+	var flow OTPFlow
+	if err := json.Unmarshal([]byte(val), &flow); err != nil {
 		return nil, err
 	}
-	return &f, nil
+	return &flow, nil
 }
 
 // ExpireFlowMark sets status to EXPIRED for existing flowID (non-destructive)
@@ -79,6 +80,11 @@ func GetActiveFlow(ctx context.Context, email string) (string, error) {
 		return "", err
 	}
 	return v, nil
+}
+
+// DeleteActiveFlow removes the active pointer for an email
+func DeleteActiveFlow(ctx context.Context, email string) error {
+	return RedisClient.Del(ctx, activeKey(email)).Err()
 }
 
 // Rate limiting helpers: increment counters with TTL and return current count

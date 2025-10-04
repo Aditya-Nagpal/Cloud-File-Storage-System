@@ -7,12 +7,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"strconv"
-
-	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/config"
 )
 
-var otpDigits, _ = strconv.Atoi(config.AppConfig.OtpDigits)
+var otpDigits = 6
 
 func GenerateOtp() (string, error) {
 	max := int64(1)

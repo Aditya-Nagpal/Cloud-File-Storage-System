@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
 
@@ -146,25 +145,4 @@ func RefreshToken(c *gin.Context) {
 func Logout(c *gin.Context) {
 	c.SetCookie("refreshToken", "", -1, "/", "", false, true)
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
-}
-
-type EmailCheckRequest struct {
-	Email string `json:"email" binding:"required,email"`
-}
-
-func CheckEmailExistance(c *gin.Context) {
-	var req EmailCheckRequest
-	log.Println("Checking email existence:", c.Request.Body)
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid email", "error": err.Error()})
-		return
-	}
-
-	exists, err := db.DoesEmailExist(context.TODO(), req.Email)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to check email", "error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"exists": exists})
 }
