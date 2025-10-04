@@ -2,9 +2,6 @@ package handlers
 
 import (
 	"context"
-	// "crypto/hmac"
-	// "crypto/sha256"
-	// "encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
