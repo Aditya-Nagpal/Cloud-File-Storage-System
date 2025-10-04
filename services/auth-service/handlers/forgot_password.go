@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	// "context"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
+	// "crypto/hmac"
+	// "crypto/sha256"
+	// "encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -273,10 +272,13 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	otp := strings.TrimSpace(req.OTP)
 
+	if len(otp) != 6 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid OTP"})
+		return
+	}
+
 	ip := c.ClientIP()
 	userAgent := c.GetHeader("User-Agent")
-
-	log.Println(email, flowId, otp, pwdFlowTtlInMinutes)
 
 	// Step 1: Validate active flow
 	activeFlowID, err := cache.GetActiveFlow(ctx, email)
@@ -345,11 +347,7 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 		return
 	}
 
-	// Step 6: Verify OTP hash
-	hasher := hmac.New(sha256.New, []byte(pwdResetPepper))
-	hasher.Write([]byte(otp + flow.OtpSalt))
-	calculatedHash := hex.EncodeToString(hasher.Sum(nil))
-	log.Println("calculatedHash: ", calculatedHash)
+	calculatedHash := utils.HashOTP(otp, flow.OtpSalt, pwdResetPepper)
 
 	if calculatedHash != flow.OtpHash {
 		flow.Attempts++
