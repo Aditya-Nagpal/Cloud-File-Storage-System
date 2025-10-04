@@ -12,6 +12,7 @@ import (
 type OTPFlow struct {
 	FlowID        string    `json:"flow_id"`
 	Email         string    `json:"email"`
+	Otp           string    `json:"otp"`
 	OtpHash       string    `json:"otp_hash"`
 	OtpSalt       string    `json:"otp_salt"`
 	OtpExpiresAt  time.Time `json:"otp_expires_at"`

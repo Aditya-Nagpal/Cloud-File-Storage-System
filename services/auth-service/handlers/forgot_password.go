@@ -1,7 +1,11 @@
 package handlers
 
 import (
+	// "context"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -46,6 +50,7 @@ func StartPasswordReset(c *gin.Context) {
 
 	// Basic rate limiting: IP and email
 	ip := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
 	// small windows for basic protection
 	ipCount, err := cache.IncrementRateIP(ctx, ip, 1*time.Minute)
 	if err == nil && ipCount > int64(ipPwdResetRateLimit) {
@@ -69,6 +74,7 @@ func StartPasswordReset(c *gin.Context) {
 
 	// Create new flow
 	flowId := uuid.New().String()
+	log.Println("flowId: ", flowId)
 	otp, err := utils.GenerateOtp()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating OTP", "error": err.Error()})
@@ -89,6 +95,7 @@ func StartPasswordReset(c *gin.Context) {
 	flow := &cache.OTPFlow{
 		FlowID:        flowId,
 		Email:         email,
+		Otp:           otp,
 		OtpHash:       otpHash,
 		OtpSalt:       salt,
 		OtpExpiresAt:  now.Add(ttl),
@@ -108,7 +115,7 @@ func StartPasswordReset(c *gin.Context) {
 	}
 
 	// Insert audit STARTED (non-sensitive)
-	_ = db.InsertPasswordResetAudit(ctx, flowId, email, "PENDING", ip, c.GetHeader("User-Agent"))
+	_ = db.InsertPasswordResetAudit(ctx, flowId, email, "PENDING", ip, userAgent, "", flow.Attempts)
 
 	// Always return generic response (do not leak existence)
 	c.JSON(http.StatusOK, genericResp)
@@ -138,6 +145,8 @@ func ResendForgotPassword(c *gin.Context) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 
 	ip := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
+
 	// Step 1: Validate active flow
 	activeFlowID, err := cache.GetActiveFlow(ctx, email)
 	if err != nil {
@@ -168,17 +177,14 @@ func ResendForgotPassword(c *gin.Context) {
 
 	// Step 4: Cooldown check
 	if !flow.CooldownUntil.IsZero() && now.Before(flow.CooldownUntil) {
-		remaining := int(flow.CooldownUntil.Sub(now).Seconds())
-		if remaining < 0 {
-			remaining = 0
-		}
+		remaining := max(int(flow.CooldownUntil.Sub(now).Seconds()), 0)
 		c.JSON(http.StatusTooManyRequests, gin.H{"message": fmt.Sprintf("Please wait %d seconds requesting another OTP", remaining)})
 		return
 	}
 
-	cancelTtl := time.Duration(otpCancelledTtlInMinutes) * (time.Minute)
 	// Step 5: Resend count check
 	if flow.ResendCount >= maxOtpResends {
+		cancelTtl := time.Duration(otpCancelledTtlInMinutes) * (time.Minute)
 		// Mark flow cancelled and delete active pointer
 		flow.Status = "CANCELLED"
 		// Save flow with small TTL so record remains for audit (keep a few minutes)
@@ -192,7 +198,8 @@ func ResendForgotPassword(c *gin.Context) {
 		}
 
 		// Insert audit CANCELLED
-		_ = db.InsertPasswordResetAudit(ctx, flowId, email, "CANCELLED", ip, c.GetHeader("User-Agent"))
+		failureReason := "reset attempts exceeded"
+		_ = db.InsertPasswordResetAudit(ctx, flowId, email, "CANCELLED", ip, userAgent, failureReason, flow.Attempts)
 
 		c.JSON(http.StatusTooManyRequests, gin.H{"message": "maximum resend attempts exceeded"})
 		return
@@ -215,6 +222,7 @@ func ResendForgotPassword(c *gin.Context) {
 	otpTtl := time.Duration(otpValidityTtlInMinutes) * (time.Minute)
 	cooldownTtl := time.Duration(cooldownTtlInSeconds) * (time.Second)
 
+	flow.Otp = otp
 	flow.OtpHash = otpHash
 	flow.OtpSalt = salt
 	flow.OtpExpiresAt = now.Add(otpTtl)
@@ -240,4 +248,148 @@ func ResendForgotPassword(c *gin.Context) {
 		"message":         "OTP resent successfully.",
 		"cooldownSeconds": cooldownTtlInSeconds,
 	})
+}
+
+type VerifyOTPRequest struct {
+	FlowID string `json:"flowId" binding:"required"`
+	Email  string `json:"email" binding:"required,email"`
+	OTP    string `json:"otp" binding:"required"`
+}
+
+func VerifyForgotPasswordOTP(c *gin.Context) {
+	maxOtpAttempts, _ := strconv.Atoi(config.AppConfig.MaxOtpAttempts)
+	pwdFlowTtlInMinutes, _ := strconv.Atoi(config.AppConfig.PwdFlowTtlInMinutes)
+	pwdResetPepper := config.AppConfig.PwdResetPepper
+
+	ctx := context.Background()
+
+	var req VerifyOTPRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request", "error": err.Error()})
+		return
+	}
+
+	flowId := strings.TrimSpace(req.FlowID)
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	otp := strings.TrimSpace(req.OTP)
+
+	ip := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
+
+	log.Println(email, flowId, otp, pwdFlowTtlInMinutes)
+
+	// Step 1: Validate active flow
+	activeFlowID, err := cache.GetActiveFlow(ctx, email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
+		return
+	} else if activeFlowID == "" || activeFlowID != flowId {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid or expired flow"})
+		return
+	}
+
+	// Step 2: Fetch flow data
+	flow, err := cache.GetFlow(ctx, flowId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
+		return
+	} else if flow == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "flow not found or expired"})
+		return
+	}
+
+	// Step 3: Check status
+	if flow.Status != "ACTIVE" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Flow is not active"})
+		return
+	}
+
+	now := time.Now().UTC()
+	pwdFlowTtl := time.Duration(pwdFlowTtlInMinutes) * (time.Minute)
+
+	// Step 4: Expiry check
+	if now.After(flow.OtpExpiresAt) {
+		flow.Status = "EXPIRED"
+
+		if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
+			log.Printf("redis save flow error: %v", err.Error())
+		}
+
+		if err := cache.DeleteActiveFlow(ctx, email); err != nil {
+			log.Printf("redis delete active flow error: %v", err.Error())
+		}
+
+		failureReason := "otp expired"
+		_ = db.InsertPasswordResetAudit(ctx, flowId, email, "EXPIRED", ip, userAgent, failureReason, flow.Attempts)
+
+		c.JSON(http.StatusBadRequest, gin.H{"message": "OTP expired"})
+		return
+	}
+
+	// Step 5: Attempt count check
+	if flow.Attempts >= maxOtpAttempts {
+		flow.Status = "BLOCKED"
+
+		if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
+			log.Printf("redis save flow error: %v", err.Error())
+		}
+
+		if err := cache.DeleteActiveFlow(ctx, email); err != nil {
+			log.Printf("redis delete active flow error: %v", err.Error())
+		}
+
+		failureReason := "verify attempts exceeded"
+		_ = db.InsertPasswordResetAudit(ctx, flowId, email, "BLOCKED", ip, userAgent, failureReason, flow.Attempts)
+
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Too many failed attempts"})
+		return
+	}
+
+	// Step 6: Verify OTP hash
+	hasher := hmac.New(sha256.New, []byte(pwdResetPepper))
+	hasher.Write([]byte(otp + flow.OtpSalt))
+	calculatedHash := hex.EncodeToString(hasher.Sum(nil))
+	log.Println("calculatedHash: ", calculatedHash)
+
+	if calculatedHash != flow.OtpHash {
+		flow.Attempts++
+		if flow.Attempts >= maxOtpAttempts {
+			flow.Status = "BLOCKED"
+
+			if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
+				log.Printf("redis save flow error: %v", err.Error())
+			}
+
+			if err := cache.DeleteActiveFlow(ctx, email); err != nil {
+				log.Printf("redis delete active flow error: %v", err.Error())
+			}
+
+			failureReason := "verify attempts limit exceeded"
+			_ = db.InsertPasswordResetAudit(ctx, flowId, email, "BLOCKED", ip, userAgent, failureReason, flow.Attempts)
+
+			c.JSON(http.StatusTooManyRequests, gin.H{"message": "OTP blocked due to repeated failed attempts"})
+			return
+		}
+
+		if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
+			log.Printf("redis save flow error: %v", err.Error())
+		}
+
+		failureReason := "incorrect otp"
+		_ = db.InsertPasswordResetAudit(ctx, flowId, email, "FAILED_ATTEMPT", ip, userAgent, failureReason, flow.Attempts)
+
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid OTP"})
+		return
+	}
+
+	// Step 7: OTP verified successfully
+	flow.Status = "VERIFIED"
+
+	if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
+		log.Printf("redis save flow error: %v", err.Error())
+	}
+
+	_ = db.InsertPasswordResetAudit(ctx, flowId, email, "VERIFIED", ip, userAgent, "", flow.Attempts)
+
+	c.JSON(http.StatusOK, gin.H{"message": "OTP verified successfully"})
 }
