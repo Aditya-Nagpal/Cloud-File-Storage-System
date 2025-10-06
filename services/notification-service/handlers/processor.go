@@ -51,7 +51,7 @@ func (p *Processor) handleEmail(ctx context.Context, ep models.EmailPayload) err
 	subject := ep.Subject
 
 	// send via mailer
-	if err := p.Mailer.SendEmail(ctx, to, subject, text, html); err != nil {
+	if err := p.Mailer.SendEmail(ctx, to, subject, text, html, ep.Template, ep.Data); err != nil {
 		log.Printf("email send error: %v", err)
 		return err
 	}

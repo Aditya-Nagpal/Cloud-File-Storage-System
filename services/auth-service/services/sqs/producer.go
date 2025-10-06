@@ -66,9 +66,9 @@ func PublishOTP(ctx context.Context, toEmail, otp, flowId string) error {
 		Text:     fmt.Sprintf("Your OTP is %s (valid for 10 minutes).", otp),
 		HTML:     fmt.Sprintf("<p>Your OTP is <strong>%s</strong> (valid for 10 minutes).</p>", otp),
 		Template: "forgot_password",
-		Data: map[string]interface{}{
-			"otp":    otp,
-			"flowId": flowId,
+		Data: map[string]any{
+			"OTP":    otp,
+			"FlowId": flowId,
 		},
 	}
 
@@ -81,8 +81,8 @@ func PublishOTP(ctx context.Context, toEmail, otp, flowId string) error {
 		Type:    "EMAIL",
 		Payload: json.RawMessage(payloadBytes),
 		Meta: map[string]any{
-			"flowId": flowId,
-			"source": "auth-service",
+			"FlowId": flowId,
+			"Source": "auth-service",
 		},
 	}
 

@@ -13,6 +13,7 @@ import (
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/notification-service/handlers"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/notification-service/routes"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/notification-service/services/mailer"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/notification-service/services/mailer/templates"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/notification-service/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -20,6 +21,11 @@ import (
 func main() {
 	// Load environment variables from .env file
 	config.LoadConfig()
+
+	// load templates once
+	if err := templates.LoadTemplates(); err != nil {
+		log.Fatalf("failed to load templates: %v", err)
+	}
 
 	// context + graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())

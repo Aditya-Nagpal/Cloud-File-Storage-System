@@ -16,5 +16,5 @@ type EmailPayload struct {
 	Text     string         `json:"text,omitempty"`
 	HTML     string         `json:"html,omitempty"`
 	Template string         `json:"template,omitempty"`
-	Data     map[string]any `json:"data,omitempty"` // optional template data
+	Data     map[string]any `json:"data,omitempty"` // template data
 }
