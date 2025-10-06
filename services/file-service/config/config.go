@@ -29,7 +29,7 @@ func LoadConfig() {
 		DatabaseURL:        getEnv("DATABASE_URL"),
 		BucketName:         getEnv("BUCKET_NAME"),
 		AWSAccessKeyId:     getEnv("AWS_ACCESS_KEY_ID"),
-		AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY_ID"),
+		AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY"),
 		AWSRegion:          getEnv("AWS_REGION"),
 	}
 }

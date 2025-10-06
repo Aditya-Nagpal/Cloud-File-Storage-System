@@ -11,10 +11,10 @@ type NotificationMessage struct {
 
 // EmailPayload represents the email-specific payload
 type EmailPayload struct {
-	To       string                 `json:"to" binding:"required,email"`
-	Subject  string                 `json:"subject"`
-	Text     string                 `json:"text,omitempty"`
-	HTML     string                 `json:"html,omitempty"`
-	Template string                 `json:"template,omitempty"`
-	Data     map[string]interface{} `json:"data,omitempty"` // optional template data
+	To       string         `json:"to" binding:"required,email"`
+	Subject  string         `json:"subject"`
+	Text     string         `json:"text,omitempty"`
+	HTML     string         `json:"html,omitempty"`
+	Template string         `json:"template,omitempty"`
+	Data     map[string]any `json:"data,omitempty"` // optional template data
 }

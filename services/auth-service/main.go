@@ -5,6 +5,7 @@ import (
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/config"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/db"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/routes"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/services/sqs"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,6 +15,7 @@ func main() {
 
 	db.ConnectDatabase()
 	cache.InitRedis()
+	sqs.InitSQS()
 
 	r := gin.Default()
 

@@ -12,8 +12,8 @@ import (
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/cache"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/config"
-
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/db"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/services/sqs"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -44,10 +44,10 @@ func StartPasswordReset(c *gin.Context) {
 	}
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 
-	// Basic rate limiting: IP and email
+	// Step 1: Basic rate limiting: IP and email
 	ip := c.ClientIP()
 	userAgent := c.GetHeader("User-Agent")
-	// small windows for basic protection
+	// Step 2: small windows for basic protection
 	ipCount, err := cache.IncrementRateIP(ctx, ip, 1*time.Minute)
 	if err == nil && ipCount > int64(ipPwdResetRateLimit) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"message": "Too many requests from this IP: " + ip})
@@ -59,7 +59,7 @@ func StartPasswordReset(c *gin.Context) {
 		return
 	}
 
-	// If an active flow exists, expire it
+	// Step 3: If an active flow exists, expire it
 	activeFlow, err := cache.GetActiveFlow(ctx, email)
 	if err != nil {
 		log.Printf("redis get active error: %v", err)
@@ -68,7 +68,7 @@ func StartPasswordReset(c *gin.Context) {
 		_ = cache.ExpireFlow(ctx, activeFlow, time.Duration(otpValidityTtlInMinutes)*time.Minute)
 	}
 
-	// Create new flow
+	// Step 4: Create new flow
 	flowId := uuid.New().String()
 	log.Println("flowId: ", flowId)
 	otp, err := utils.GenerateOtp()
@@ -77,7 +77,7 @@ func StartPasswordReset(c *gin.Context) {
 		return
 	}
 
-	// create salt and hash
+	// Step 5: create salt and hash
 	salt, err := utils.GenerateSalt(16)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating salt", "error": err.Error()})
@@ -102,7 +102,7 @@ func StartPasswordReset(c *gin.Context) {
 		CooldownUntil: now.Add(cooldownTtl),
 	}
 
-	// Save flow and active pointer
+	// Step 6: Save flow and active pointer
 	if err := cache.SaveFlow(ctx, flow, ttl); err != nil {
 		log.Printf("redis save flow error: %v", err.Error())
 	}
@@ -110,10 +110,15 @@ func StartPasswordReset(c *gin.Context) {
 		log.Printf("redis save active flow error: %v", err.Error())
 	}
 
-	// Insert audit STARTED (non-sensitive)
+	// Step 7: Insert audit STARTED (non-sensitive)
 	_ = db.InsertPasswordResetAudit(ctx, flowId, email, "PENDING", ip, userAgent, "", flow.Attempts)
 
-	// Always return generic response (do not leak existence)
+	// Step 8: Async send OTP via notification-service (fire and forget)
+	if err := sqs.PublishOTP(ctx, email, otp, flowId); err != nil {
+		log.Println("Failed to push notification message:", err)
+	}
+
+	// Step 9: Always return generic response (do not leak existence)
 	c.JSON(http.StatusOK, genericResp)
 }
 
@@ -201,14 +206,13 @@ func ResendForgotPassword(c *gin.Context) {
 		return
 	}
 
-	// Generate new OTP, salt, hash
+	// Step 6: Generate new OTP, salt, hash
 	otp, err := utils.GenerateOtp()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating OTP", "error": err})
 		return
 	}
 
-	// create salt and hash
 	salt, err := utils.GenerateSalt(16)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating salt", "error": err.Error()})
@@ -226,7 +230,7 @@ func ResendForgotPassword(c *gin.Context) {
 	flow.CooldownUntil = now.Add(cooldownTtl)
 	flow.Status = "ACTIVE"
 
-	// Compute TTL for Redis save (keep flow alive until otp expiry)
+	// Step 7: Compute TTL for Redis save (keep flow alive until otp expiry)
 	ttl := time.Until(flow.OtpExpiresAt)
 	if ttl <= 0 {
 		ttl = otpTtl
@@ -238,6 +242,14 @@ func ResendForgotPassword(c *gin.Context) {
 
 	if err := cache.SetActiveFlow(ctx, email, flowId, ttl); err != nil {
 		log.Printf("redis save active flow error: %v", err.Error())
+	}
+
+	failureReason := "otp missed or expired"
+	_ = db.InsertPasswordResetAudit(ctx, flowId, email, "RESENT", ip, userAgent, failureReason, flow.Attempts)
+
+	// Step 8: Async send OTP via notification-service (fire and forget)
+	if err := sqs.PublishOTP(ctx, email, otp, flowId); err != nil {
+		log.Println("Failed to push notification message:", err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

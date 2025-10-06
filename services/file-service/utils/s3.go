@@ -22,13 +22,16 @@ type S3Uploader struct {
 }
 
 func NewS3Uploader() (*S3Uploader, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	cfg, err := config.LoadDefaultConfig(
+		context.TODO(),
 		config.WithRegion(ConfigEnv.AppConfig.AWSRegion),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			ConfigEnv.AppConfig.AWSAccessKeyId,
-			ConfigEnv.AppConfig.AWSSecretAccessKey,
-			"",
-		)),
+		config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(
+				ConfigEnv.AppConfig.AWSAccessKeyId,
+				ConfigEnv.AppConfig.AWSSecretAccessKey,
+				"",
+			),
+		),
 	)
 	if err != nil {
 		panic("Failed to load AWS config: " + err.Error())
