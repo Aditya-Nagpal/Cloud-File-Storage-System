@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/notification-service/models"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/notification-service/services/mailer"
@@ -43,15 +45,28 @@ func (p *Processor) handleEmail(ctx context.Context, ep models.EmailPayload) err
 		return errors.New("empty email recipient")
 	}
 
-	text := ep.Text
-	html := ep.HTML
-	if html == "" && text == "" {
-		return errors.New("empty email body")
+	template := ep.Template
+	if template == "" {
+		return errors.New("empty email template")
 	}
+
 	subject := ep.Subject
 
+	data := ep.Data
+	for key, val := range data {
+		if strings.TrimSpace(key) == "" {
+			return fmt.Errorf("validation error: data map contains an empty key")
+		}
+
+		if strVal, ok := val.(string); ok {
+			if strings.TrimSpace(strVal) == "" {
+				return fmt.Errorf("validation error: data map key '%s' has an empty value", key)
+			}
+		}
+	}
+
 	// send via mailer
-	if err := p.Mailer.SendEmail(ctx, to, subject, text, html, ep.Template, ep.Data); err != nil {
+	if err := p.Mailer.SendEmail(ctx, to, subject, template, data); err != nil {
 		log.Printf("email send error: %v", err)
 		return err
 	}

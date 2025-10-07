@@ -12,7 +12,7 @@ import (
 
 // Mailer interface so you can swap implementations
 type Mailer interface {
-	SendEmail(ctx context.Context, to, subject, text, html, templateName string, data map[string]any) error
+	SendEmail(ctx context.Context, to, subject, templateName string, data map[string]any) error
 }
 
 type MailjetMailer struct {
@@ -33,17 +33,20 @@ func NewMailjetMailer() *MailjetMailer {
 	}
 }
 
-func (m *MailjetMailer) SendEmail(ctx context.Context, to, subject, text, html, templateName string, data map[string]any) error {
+func (m *MailjetMailer) SendEmail(ctx context.Context, to, subject, templateName string, data map[string]any) error {
 	if to == "" || subject == "" {
 		return errors.New("to and subject required")
 	}
 
+	html := ""
 	if templateName != "" {
 		rendered, err := templates.RenderTemplate(templateName+".html", data)
 		if err != nil {
 			return fmt.Errorf("template render error %v", err)
 		}
 		html = rendered
+	} else {
+		return fmt.Errorf("templateName required")
 	}
 
 	message := mailjet.MessagesV31{
@@ -57,7 +60,6 @@ func (m *MailjetMailer) SendEmail(ctx context.Context, to, subject, text, html, 
 					mailjet.RecipientV31{Email: to},
 				},
 				Subject:  subject,
-				TextPart: text,
 				HTMLPart: html,
 			},
 		},

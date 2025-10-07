@@ -3,7 +3,6 @@ package sqs
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/config"
@@ -63,8 +62,6 @@ func PublishOTP(ctx context.Context, toEmail, otp, flowId string) error {
 	ep := models.EmailPayload{
 		To:       toEmail,
 		Subject:  "Your password reset OTP",
-		Text:     fmt.Sprintf("Your OTP is %s (valid for 10 minutes).", otp),
-		HTML:     fmt.Sprintf("<p>Your OTP is <strong>%s</strong> (valid for 10 minutes).</p>", otp),
 		Template: "forgot_password",
 		Data: map[string]any{
 			"OTP":    otp,
