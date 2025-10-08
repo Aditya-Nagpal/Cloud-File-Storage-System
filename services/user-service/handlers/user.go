@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	// "path"
-
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service/db"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service/models"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service/utils"
@@ -21,7 +19,10 @@ func GetProfileDetails(c *gin.Context) {
 	}
 
 	user, err := db.GetProfleByEmail(c.Request.Context(), userEmail)
-	if err != nil {
+	if user == nil && err == nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	} else if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "User not found", "error": err.Error()})
 		return
 	}

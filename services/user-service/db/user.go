@@ -5,18 +5,20 @@ import (
 	"fmt"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service/models"
+	"github.com/jackc/pgx/v5"
 )
 
-func GetProfleByEmail(ctx context.Context, userEmail string) (*models.User, error) {
+func GetProfleByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `SELECT email, name, age, display_picture FROM users WHERE email = $1`
-	row := DB.QueryRow(ctx, query, userEmail)
 
 	var user models.User
-	err := row.Scan(&user.Email, &user.Name, &user.Age, &user.DisplayPicture)
-	if err != nil {
+
+	err := DB.QueryRow(ctx, query, email).Scan(&user.Email, &user.Name, &user.Age, &user.DisplayPicture)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
-	// log.Printf("Retrieved user profile:", &user)
 	return &user, nil
 }
 

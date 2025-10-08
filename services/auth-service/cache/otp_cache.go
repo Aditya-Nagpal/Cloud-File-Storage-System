@@ -31,7 +31,6 @@ func rateEmailKey(email string) string { return "pwdreset:rate:email:" + email }
 
 // SaveFlow saves the flow struct as JSON in Redis with TTL
 func SaveFlow(ctx context.Context, flow *OTPFlow, ttl time.Duration) error {
-	// return RedisClient.Set(ctx, flowKey(flow.FlowID), flow, ttl).Err()
 	b, err := json.Marshal(flow)
 	if err != nil {
 		return err
@@ -64,6 +63,10 @@ func ExpireFlow(ctx context.Context, flowId string, ttl time.Duration) error {
 	f.Status = "EXPIRED"
 	b, _ := json.Marshal(f)
 	return RedisClient.Set(ctx, flowKey(flowId), b, ttl).Err()
+}
+
+func DeleteFlow(ctx context.Context, flowId string) error {
+	return RedisClient.Del(ctx, flowKey(flowId)).Err()
 }
 
 // SetActiveFlow sets pwdreset:active:{email} = flowID with TTL

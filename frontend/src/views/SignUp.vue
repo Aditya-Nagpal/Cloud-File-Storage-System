@@ -1,61 +1,21 @@
 <template>
-  <form @submit.prevent="handleSignUp">
-    <h2>Sign Up</h2>
-    <input v-model="name" type="text" placeholder="Name" required />
-    <input v-model="email" type="email" placeholder="Email" required />
-    <input v-model="age" type="number" placeholder="Age" required />
-    <input v-model="password" type="password" placeholder="Password" required />
-    <input v-model="confirmPassword" type="password" placeholder="Confirm Password" required />
-    <button type="submit">Sign Up</button>
-    <a href="/user/login">Already have an account? Sign in</a>
-  </form>
+  <HeaderBar />
+  <div class="signup-page d-flex flex-column align-items-center py-5">
+    <h2 class="text-center mb-5 fw-semibold">Create Your FastFiles Account</h2>
+    <SignUpForm />    
+  </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useAuthStore } from '../store/auth';
-import { useRouter } from 'vue-router';
-import { toast } from 'vue3-toastify';
+import HeaderBar from '../components/HeaderBar.vue'; 
+import SignUpForm from '../components/SignUpForm.vue';
 
-const auth = useAuthStore();
-const router = useRouter();
-
-const name = ref('');
-const email = ref('');
-const age = ref('');
-const password = ref('');
-const confirmPassword = ref('');
-
-const handleSignUp = async () => {
-  if (password.value !== confirmPassword.value) {
-    toast.error('Passwords do not match');
-    return;
-  }
-
-  try {
-    const newUser = {
-      name: name.value,
-      email: email.value,
-      age: Number(age.value),
-      password: password.value,
-    }
-    await auth.signUp(newUser);
-    toast.success('User Registered Successfully!');
-    resetForm();
-    router.push('/user/login');
-  } catch (error) {
-    console.error('Sign up error:', error);
-    toast.error(error.response.data.message);
-    resetForm();
-    return;
-  }
-}
-
-const resetForm = () => {
-  name.value = ''
-  email.value = ''
-  age.value = ''
-  password.value = ''
-  confirmPassword.value = ''
-}
 </script>
+
+<style scoped>
+.signup-page {
+  background-color: #fcfcfd; 
+  min-height: 100vh;
+  padding-bottom: 5rem !important; 
+}
+</style>

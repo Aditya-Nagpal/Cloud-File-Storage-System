@@ -15,17 +15,16 @@ import (
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/db"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/services/sqs"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/utils"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/hash"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // request DTO
 type ForgotStartRequest struct {
 	Email string `json:"email" binding:"required,email"`
 }
-
-// Response: always generic
-var genericResp = gin.H{"message": "If an account exists for this email, an OTP has been sent if allowed."}
 
 func StartPasswordReset(c *gin.Context) {
 	ipPwdResetRateLimit, _ := strconv.Atoi(config.AppConfig.IpPwdResetRateLimit)
@@ -119,7 +118,10 @@ func StartPasswordReset(c *gin.Context) {
 	}
 
 	// Step 9: Always return generic response (do not leak existence)
-	c.JSON(http.StatusOK, genericResp)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "If an account exists for this email, an OTP has been sent if allowed.",
+		"flowId":  flowId,
+	})
 }
 
 type ResendOTPRequest struct {
@@ -399,4 +401,110 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 	_ = db.InsertPasswordResetAudit(ctx, flowId, email, "VERIFIED", ip, userAgent, "", flow.Attempts)
 
 	c.JSON(http.StatusOK, gin.H{"message": "OTP verified successfully"})
+}
+
+type ResetPasswordRequest struct {
+	FlowID      string `json:"flowId" binding:"required"`
+	Email       string `json:"email" binding:"required,email"`
+	NewPassword string `json:"newPassword" binding:"required"`
+}
+
+func ResetPassword(c *gin.Context) {
+	pwdFlowTtlInMinutes, _ := strconv.Atoi(config.AppConfig.PwdFlowTtlInMinutes)
+
+	ctx := context.Background()
+
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request", "error": err.Error()})
+		return
+	}
+
+	flowId := strings.TrimSpace(req.FlowID)
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	newPassword := strings.TrimSpace(req.NewPassword)
+
+	ip := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
+
+	// Step 1: Validate active flow
+	activeFlowID, err := cache.GetActiveFlow(ctx, email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
+		return
+	} else if activeFlowID == "" || activeFlowID != flowId {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid or expired flow"})
+		return
+	}
+
+	// Step 2: Get current hashed password and validate email
+	currentHashedPassword, err := db.GetUserHashedPassword(ctx, email)
+	if currentHashedPassword == "" && err == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Email does not exist"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error in checking email", "error": err.Error()})
+		return
+	}
+
+	// Step 3: Fetch flow data
+	flow, err := cache.GetFlow(ctx, flowId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
+		return
+	} else if flow == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "flow not found or expired"})
+		return
+	}
+
+	// Step 4: Check flow status
+	if flow.Status != "VERIFIED" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Flow is not verified"})
+		return
+	}
+
+	// Step 5: Hash new password
+	newHashedPassword, err := hash.HashPassword(newPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not hash password", "error": err.Error()})
+		return
+	}
+
+	// Step 6: Check password uniqueness
+	if string(newHashedPassword) == currentHashedPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "New password cannot be the same as the current password"})
+		return
+	}
+
+	// Step 7: Update password
+	if err := db.UpdateUserPassword(ctx, email, string(newHashedPassword)); err != nil {
+		if err == pgx.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Email not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating password", "error": err.Error()})
+		return
+	}
+
+	// Step 8: Insert audit and mark flow completed
+	pwdFlowTtl := time.Duration(pwdFlowTtlInMinutes) * (time.Minute)
+
+	flow.Status = "COMPLETED"
+
+	if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
+		log.Printf("redis save flow error: %v", err.Error())
+	}
+
+	_ = db.InsertPasswordResetAudit(ctx, flowId, email, "COMPLETED", ip, userAgent, "", flow.Attempts)
+
+	// Step 9: Delete active and flow redis key
+	if err := cache.DeleteActiveFlow(ctx, email); err != nil {
+		log.Printf("redis delete active flow error: %v", err.Error())
+	}
+
+	if err := cache.DeleteFlow(ctx, flowId); err != nil {
+		log.Printf("redis delete flow error: %v", err.Error())
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
 }

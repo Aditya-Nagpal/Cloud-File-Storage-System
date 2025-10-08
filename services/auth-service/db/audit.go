@@ -9,17 +9,16 @@ import (
 
 func InsertPasswordResetAudit(ctx context.Context, flowID, email, status, ip, userAgent, failureReasonTemp string, attemptCount int) error {
 	query := `INSERT INTO password_reset_audit (
-				flow_id,
-				email,
-				status,
-				ip_address,
-				user_agent,
-				created_at,
-				verified_at,
-				attempt_count,
-				failure_reason
-			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+		flow_id,
+		email,
+		status,
+		ip_address,
+		user_agent,
+		created_at,
+		verified_at,
+		attempt_count,
+		failure_reason
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	verifiedAt := any(nil)
 	if status == "VERIFIED" {

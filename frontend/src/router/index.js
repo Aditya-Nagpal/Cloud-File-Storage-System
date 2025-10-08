@@ -6,7 +6,7 @@ import Home from '../views/Home.vue';
 import { useAuthStore } from '../store/auth';
 
 const routes = [
-    { path: '/user/login', component: SignIn},
+    { path: '/user/login', component: SignIn },
     { path: '/user/signup', component: SignUp },
     { path: '/user/profile', component: Profile },
     { path: '/', component: Home }

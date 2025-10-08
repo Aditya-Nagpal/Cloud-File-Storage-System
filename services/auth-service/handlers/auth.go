@@ -3,26 +3,19 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/config"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/db"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/models"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/hash"
-
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/jwt"
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 )
 
-type RegisterRequest struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Age      int    `json:"age"`
-	Password string `json:"password"`
-}
-
 func Register(c *gin.Context) {
-	var req RegisterRequest
+	var req models.User
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"statusCode": 500, "error": err.Error()})
 		return
@@ -31,30 +24,39 @@ func Register(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Check if email already exists
-	var exists bool
-	checkQuery := `SELECT EXISTS(SELECT 1 FROM users WHERE email=$1)`
-	err := db.DB.QueryRow(ctx, checkQuery, req.Email).Scan(&exists)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not check email", "error": err.Error()})
+	if !req.TermsAndPrivacy {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Please accept terms and privacy policy"})
 		return
 	}
-	if exists {
+
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	password := strings.TrimSpace(req.Password)
+
+	// Check if email already exists
+	exists, err := db.DoesEmailExist(ctx, email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not check email existance", "error": err.Error()})
+		return
+	} else if exists {
 		c.JSON(http.StatusConflict, gin.H{"message": "Email already registered"})
 		return
 	}
 
 	// Hash password
-	hashedPassword, err := hash.HashPassword(req.Password)
+	hashedPassword, err := hash.HashPassword(password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not hash password", "error": err.Error()})
 		return
 	}
 
+	req.Email = email
+	req.Password = string(hashedPassword)
+	req.Name = strings.TrimSpace(req.Name)
+	req.AlternateEmail = strings.ToLower(strings.TrimSpace(req.AlternateEmail))
+	req.ContactNumber = strings.TrimSpace(req.ContactNumber)
+
 	// Insert user in db
-	insertQuery := `INSERT INTO users (name, email, age, password, unhashed_password) VALUES ($1, $2, $3, $4, $5)`
-	_, err = db.DB.Exec(ctx, insertQuery, req.Name, req.Email, req.Age, hashedPassword, req.Password)
-	if err != nil {
+	if err := db.RegisterUser(ctx, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not create user", "error": err.Error()})
 		return
 	}
@@ -63,8 +65,8 @@ func Register(c *gin.Context) {
 }
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
 }
 
 func Login(c *gin.Context) {
@@ -77,35 +79,32 @@ func Login(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var id int
-	var name string
-	var age int
-	var hashedPassword string
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	password := strings.TrimSpace(req.Password)
 
-	query := `SELECT id, name, age, password FROM users WHERE email=$1`
-	err := db.DB.QueryRow(ctx, query, req.Email).Scan(&id, &name, &age, &hashedPassword)
-	if err == pgx.ErrNoRows {
+	hashedPassword, err := db.GetUserHashedPassword(ctx, email)
+	if hashedPassword == "" && err == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid email or password"})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Error in checking email", "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error in checking email", "error": err.Error()})
 		return
 	}
 
-	if !hash.CheckPasswordHash(req.Password, hashedPassword) {
+	if !hash.CheckPasswordHash(password, hashedPassword) {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid email or password"})
 		return
 	}
 
 	// Generate access token short-lived
-	accessToken, err := jwt.GenerateWithExpiry(req.Email, config.AppConfig.JwtSecret, 2*time.Hour)
+	accessToken, err := jwt.GenerateWithExpiry(email, config.AppConfig.JwtSecret, 2*time.Hour)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not access generate token", "error": err.Error()})
 		return
 	}
 
 	// Generate refresh token long-lived
-	refreshToken, err := jwt.GenerateWithExpiry(req.Email, config.AppConfig.JwtSecret, 7*24*time.Hour)
+	refreshToken, err := jwt.GenerateWithExpiry(email, config.AppConfig.JwtSecret, 7*24*time.Hour)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not refresh generate token", "error": err.Error()})
 		return
