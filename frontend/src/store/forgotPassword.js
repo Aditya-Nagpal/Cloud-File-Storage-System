@@ -8,6 +8,8 @@ const VERIFY_OTP_API = BASE_URL + '/verify';
 const RESET_PASSWORD_API = BASE_URL + '/reset';
 const RESEND_OTP_API = BASE_URL + '/resend';
 
+const RESET_FLOW_STATUSCODES = [410, 422, 429];
+
 export const useForgotPasswordStore = defineStore('forgotPassword', {
     state: () => ({
         flowId: localStorage.getItem('flowId') || null,
@@ -37,7 +39,7 @@ export const useForgotPasswordStore = defineStore('forgotPassword', {
                     return { success: true };
                 }
             } catch (error) {
-                if(error.response?.status === 429) {
+                if(RESET_FLOW_STATUSCODES.includes(error.response?.status)) {
                     this.resetFlow();
                     throw { redirect: true, message: 'Too many requests' }
                 }
@@ -53,7 +55,7 @@ export const useForgotPasswordStore = defineStore('forgotPassword', {
                     return { success: true };
                 }
             } catch (error) {
-                if(error.response?.status === 429) {
+                if(RESET_FLOW_STATUSCODES.includes(error.response?.status)) {
                     this.resetFlow();
                     throw { redirect: true, message: 'Too many requests' }
                 }
@@ -67,7 +69,7 @@ export const useForgotPasswordStore = defineStore('forgotPassword', {
                 const res = await axios.post(RESEND_OTP_API, payload);
                 return res.data;
             } catch (error) {
-                if(error.response?.status === 429) {
+                if(RESET_FLOW_STATUSCODES.includes(error.response?.status)) {
                     this.resetFlow();
                     throw { redirect: true, message: 'Too many requests' }
                 }
@@ -84,7 +86,7 @@ export const useForgotPasswordStore = defineStore('forgotPassword', {
                     return { success: true };
                 }
             } catch (error) {
-                if(error.response?.status === 429) {
+                if(RESET_FLOW_STATUSCODES.includes(error.response?.status)) {
                     this.resetFlow();
                     throw { redirect: true, message: 'Too many requests' }
                 }
@@ -92,4 +94,4 @@ export const useForgotPasswordStore = defineStore('forgotPassword', {
             }
         }
     }
-})
+});
