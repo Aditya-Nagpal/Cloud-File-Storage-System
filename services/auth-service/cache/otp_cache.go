@@ -5,23 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/models"
 	"github.com/redis/go-redis/v9"
 )
-
-// OTPFlow represents the Redis-stored flow structure (JSON stored as value)
-type OTPFlow struct {
-	FlowID        string    `json:"flow_id"`
-	Email         string    `json:"email"`
-	Otp           string    `json:"otp"`
-	OtpHash       string    `json:"otp_hash"`
-	OtpSalt       string    `json:"otp_salt"`
-	OtpExpiresAt  time.Time `json:"otp_expires_at"`
-	ResendCount   int       `json:"resend_count"`
-	Attempts      int       `json:"attempts"`
-	Status        string    `json:"status"` // ACTIVE | EXPIRED | COMPLETED | CANCELLED
-	CreatedAt     time.Time `json:"created_at"`
-	CooldownUntil time.Time `json:"cooldown_until"`
-}
 
 // Redis key helpers
 func flowKey(flowId string) string     { return "pwdreset:flow:" + flowId }
@@ -30,7 +16,7 @@ func rateIpKey(ip string) string       { return "pwdreset:rate:ip:" + ip }
 func rateEmailKey(email string) string { return "pwdreset:rate:email:" + email }
 
 // SaveFlow saves the flow struct as JSON in Redis with TTL
-func SaveFlow(ctx context.Context, flow *OTPFlow, ttl time.Duration) error {
+func SaveFlow(ctx context.Context, flow *models.OTPFlow, ttl time.Duration) error {
 	b, err := json.Marshal(flow)
 	if err != nil {
 		return err
@@ -39,7 +25,7 @@ func SaveFlow(ctx context.Context, flow *OTPFlow, ttl time.Duration) error {
 }
 
 // GetFlow loads a flow by id (returns nil, nil if not found)
-func GetFlow(ctx context.Context, flowId string) (*OTPFlow, error) {
+func GetFlow(ctx context.Context, flowId string) (*models.OTPFlow, error) {
 	val, err := RedisClient.Get(ctx, flowKey(flowId)).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -47,7 +33,7 @@ func GetFlow(ctx context.Context, flowId string) (*OTPFlow, error) {
 		}
 		return nil, err
 	}
-	var flow OTPFlow
+	var flow models.OTPFlow
 	if err := json.Unmarshal([]byte(val), &flow); err != nil {
 		return nil, err
 	}
@@ -89,6 +75,11 @@ func GetActiveFlow(ctx context.Context, email string) (string, error) {
 // DeleteActiveFlow removes the active pointer for an email
 func DeleteActiveFlow(ctx context.Context, email string) error {
 	return RedisClient.Del(ctx, activeKey(email)).Err()
+}
+
+// SetActiveTtl sets a new ttl to the active key
+func SetActiveTtl(ctx context.Context, email string, ttl time.Duration) error {
+	return RedisClient.Expire(ctx, activeKey(email), ttl).Err()
 }
 
 // Rate limiting helpers: increment counters with TTL and return current count

@@ -84,13 +84,9 @@ func GetUserHashedPassword(ctx context.Context, email string) (string, error) {
 }
 
 func UpdateUserPassword(ctx context.Context, email, password string) error {
-	result, err := DB.Exec(ctx, `UPDATE users SET password=$1 WHERE email=$2`, password, email)
+	_, err := DB.Exec(ctx, `UPDATE users SET password=$1 WHERE email=$2`, password, email)
 	if err != nil {
 		return err
-	}
-
-	if result.RowsAffected() == 0 {
-		return pgx.ErrNoRows
 	}
 
 	return nil

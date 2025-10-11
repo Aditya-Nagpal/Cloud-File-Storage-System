@@ -203,7 +203,7 @@ label {
 .sign-up-link {
     color: #6366f1;
     font-size: 0.9rem;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 @media (max-width: 768px) {

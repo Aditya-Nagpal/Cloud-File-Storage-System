@@ -3,12 +3,13 @@ import { resetAllStores, resetLocalStorage } from './reset';
 import axios from 'axios';
 import API from '../api/axios';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const SIGN_IN_API = BASE_URL + '/auth/login';
-const SIGN_UP_API = BASE_URL + '/auth/register';
+const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/auth`;
+
+const SIGN_IN_API = BASE_URL + '/login';
+const SIGN_UP_API = BASE_URL + '/register';
 const PROTECT_API = '/auth/protected';
 const LOGOUT_API = '/auth/logout';
-const REFRESH_API = BASE_URL + '/auth/refresh';
+const REFRESH_API = BASE_URL + '/refresh';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({

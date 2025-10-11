@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
+	"slices"
 
 	"strings"
 	"time"
@@ -13,12 +13,12 @@ import (
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/cache"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/config"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/db"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/models"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/services/sqs"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/utils"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/hash"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 )
 
 // request DTO
@@ -27,12 +27,10 @@ type ForgotStartRequest struct {
 }
 
 func StartPasswordReset(c *gin.Context) {
-	ipPwdResetRateLimit, _ := strconv.Atoi(config.AppConfig.IpPwdResetRateLimit)
-	emailPwdResetRateLimit, _ := strconv.Atoi(config.AppConfig.EmailPwdResetRateLimit)
-	otpRateLimitTtlInMinutes, _ := strconv.Atoi(config.AppConfig.OtpRateLimitTtlInMinutes)
-	otpValidityTtlInMinutes, _ := strconv.Atoi(config.AppConfig.OtpValidityTtlInMinutes)
-	cooldownTtlInSeconds, _ := strconv.Atoi(config.AppConfig.CooldownTtlInSeconds)
-	pwdResetPepper := config.AppConfig.PwdResetPepper
+	otpValidityTtlInMinutes := config.AppConfig.OtpValidityTtlInMinutes
+	otpExpiryBufferTtlInMinutes := config.AppConfig.OtpExpiryBufferTtlInMinutes
+	otpTotalFlowTtlInMinutes := otpValidityTtlInMinutes + otpExpiryBufferTtlInMinutes
+	cooldownTtlInSeconds := config.AppConfig.CooldownTtlInSeconds
 
 	ctx := c.Request.Context()
 
@@ -43,22 +41,27 @@ func StartPasswordReset(c *gin.Context) {
 	}
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 
-	// Step 1: Basic rate limiting: IP and email
 	ip := c.ClientIP()
 	userAgent := c.GetHeader("User-Agent")
-	// Step 2: small windows for basic protection
-	ipCount, err := cache.IncrementRateIP(ctx, ip, 1*time.Minute)
+
+	// Step 1: Basic rate limiting: IP and email
+	ipPwdResetRateLimit := config.AppConfig.IpPwdResetRateLimit
+	emailPwdResetRateLimit := config.AppConfig.EmailPwdResetRateLimit
+	otpRateLimitTtlInMinutes := config.AppConfig.OtpRateLimitTtlInMinutes
+
+	ipCount, err := cache.IncrementRateIP(ctx, ip, time.Duration(otpRateLimitTtlInMinutes)*time.Minute)
 	if err == nil && ipCount > int64(ipPwdResetRateLimit) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"message": "Too many requests from this IP: " + ip})
 		return
 	}
+
 	emailCount, err := cache.IncrementRateEmail(ctx, email, time.Duration(otpRateLimitTtlInMinutes)*time.Minute)
 	if err == nil && emailCount > int64(emailPwdResetRateLimit) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"message": "Too many requests for this email: " + email})
 		return
 	}
 
-	// Step 3: If an active flow exists, expire it
+	// Step 2: If an active flow exists, expire it
 	activeFlow, err := cache.GetActiveFlow(ctx, email)
 	if err != nil {
 		log.Printf("redis get active error: %v", err)
@@ -67,33 +70,35 @@ func StartPasswordReset(c *gin.Context) {
 		_ = cache.ExpireFlow(ctx, activeFlow, time.Duration(otpValidityTtlInMinutes)*time.Minute)
 	}
 
-	// Step 4: Create new flow
+	// Step 3: Create new flow
 	flowId := uuid.New().String()
-	log.Println("flowId: ", flowId)
 	otp, err := utils.GenerateOtp()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating OTP", "error": err.Error()})
 		return
 	}
 
-	// Step 5: create salt and hash
+	// Step 4: create salt and hash
 	salt, err := utils.GenerateSalt(16)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating salt", "error": err.Error()})
 		return
 	}
-	otpHash := utils.HashOTP(otp, salt, pwdResetPepper)
+
+	otpHash := utils.HashOTP(otp, salt, config.AppConfig.PwdResetPepper)
+
 	now := time.Now().UTC()
-	ttl := time.Duration(otpValidityTtlInMinutes) * (time.Minute)
+	otpValidityTtl := time.Duration(otpValidityTtlInMinutes) * (time.Minute)
+	otpTotalFlowTtl := time.Duration(otpTotalFlowTtlInMinutes) * (time.Minute)
 	cooldownTtl := time.Duration(cooldownTtlInSeconds) * (time.Second)
 
-	flow := &cache.OTPFlow{
+	flow := &models.OTPFlow{
 		FlowID:        flowId,
 		Email:         email,
 		Otp:           otp,
 		OtpHash:       otpHash,
 		OtpSalt:       salt,
-		OtpExpiresAt:  now.Add(ttl),
+		OtpExpiresAt:  now.Add(otpValidityTtl),
 		ResendCount:   0,
 		Attempts:      0,
 		Status:        "ACTIVE",
@@ -101,24 +106,24 @@ func StartPasswordReset(c *gin.Context) {
 		CooldownUntil: now.Add(cooldownTtl),
 	}
 
-	// Step 6: Save flow and active pointer
-	if err := cache.SaveFlow(ctx, flow, ttl); err != nil {
+	// Step 5: Save flow and active pointer
+	if err := cache.SaveFlow(ctx, flow, otpTotalFlowTtl); err != nil {
 		log.Printf("redis save flow error: %v", err.Error())
 	}
-	if err := cache.SetActiveFlow(ctx, email, flowId, ttl); err != nil {
+	if err := cache.SetActiveFlow(ctx, email, flowId, otpTotalFlowTtl); err != nil {
 		log.Printf("redis save active flow error: %v", err.Error())
 	}
 
-	// Step 7: Insert audit STARTED (non-sensitive)
+	// Step 6: Insert audit STARTED (non-sensitive)
 	_ = db.InsertPasswordResetAudit(ctx, flowId, email, "PENDING", ip, userAgent, "", flow.Attempts)
 
-	// Step 8: Async send OTP via notification-service (fire and forget)
+	// Step 7: Async send OTP via notification-service (fire and forget)
 	if err := sqs.PublishOTP(ctx, email, otp, flowId); err != nil {
 		log.Println("Failed to push notification message:", err)
 	}
 
-	// Step 9: Always return generic response (do not leak existence)
-	c.JSON(http.StatusOK, gin.H{
+	// Step 8: Always return generic response (do not leak existence)
+	c.JSON(http.StatusCreated, gin.H{
 		"message": "If an account exists for this email, an OTP has been sent if allowed.",
 		"flowId":  flowId,
 	})
@@ -130,11 +135,11 @@ type ResendOTPRequest struct {
 }
 
 func ResendForgotPassword(c *gin.Context) {
-	maxOtpResends, _ := strconv.Atoi(config.AppConfig.MaxOtpResends)
-	otpValidityTtlInMinutes, _ := strconv.Atoi(config.AppConfig.OtpValidityTtlInMinutes)
-	otpCancelledTtlInMinutes, _ := strconv.Atoi(config.AppConfig.OtpCancelledTtlInMinutes)
-	cooldownTtlInSeconds, _ := strconv.Atoi(config.AppConfig.CooldownTtlInSeconds)
-	pwdResetPepper := config.AppConfig.PwdResetPepper
+	otpValidityTtlInMinutes := config.AppConfig.OtpValidityTtlInMinutes
+	otpExpiryBufferTtlInMinutes := config.AppConfig.OtpExpiryBufferTtlInMinutes
+	otpTotalFlowTtlInMinutes := otpValidityTtlInMinutes + otpExpiryBufferTtlInMinutes
+	resetFlowCancelBufferTtlInMinutes := config.AppConfig.ResetFlowCancelBufferTtlInMinutes
+	cooldownTtlInSeconds := config.AppConfig.CooldownTtlInSeconds
 
 	ctx := context.Background()
 
@@ -156,7 +161,7 @@ func ResendForgotPassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
 		return
 	} else if activeFlowID == "" || activeFlowID != flowId {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid or expired flow"})
+		c.JSON(http.StatusGone, gin.H{"message": "invalid or expired flow"})
 		return
 	}
 
@@ -166,13 +171,14 @@ func ResendForgotPassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
 		return
 	} else if flow == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "flow not found or expired"})
+		c.JSON(http.StatusGone, gin.H{"message": "flow not found or expired"})
 		return
 	}
 
 	// Step 3: Check status
-	if flow.Status != "ACTIVE" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Flow is not active"})
+	validStatuses := []string{"ACTIVE", "EXPIRED"}
+	if !slices.Contains(validStatuses, flow.Status) {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Flow is not active or expired"})
 		return
 	}
 
@@ -186,12 +192,13 @@ func ResendForgotPassword(c *gin.Context) {
 	}
 
 	// Step 5: Resend count check
+	maxOtpResends := config.AppConfig.MaxOtpResends
 	if flow.ResendCount >= maxOtpResends {
-		cancelTtl := time.Duration(otpCancelledTtlInMinutes) * (time.Minute)
+		cancelBufferTtl := time.Duration(resetFlowCancelBufferTtlInMinutes) * (time.Minute)
 		// Mark flow cancelled and delete active pointer
 		flow.Status = "CANCELLED"
 		// Save flow with small TTL so record remains for audit (keep a few minutes)
-		if err := cache.SaveFlow(ctx, flow, cancelTtl); err != nil {
+		if err := cache.SaveFlow(ctx, flow, cancelBufferTtl); err != nil {
 			log.Printf("redis save flow error: %v", err.Error())
 		}
 
@@ -220,29 +227,26 @@ func ResendForgotPassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating salt", "error": err.Error()})
 		return
 	}
-	otpHash := utils.HashOTP(otp, salt, pwdResetPepper)
-	otpTtl := time.Duration(otpValidityTtlInMinutes) * (time.Minute)
+
+	otpHash := utils.HashOTP(otp, salt, config.AppConfig.PwdResetPepper)
+
+	otpValidityTtl := time.Duration(otpValidityTtlInMinutes) * (time.Minute)
+	otpTotalFlowTtl := time.Duration(otpTotalFlowTtlInMinutes) * (time.Minute)
 	cooldownTtl := time.Duration(cooldownTtlInSeconds) * (time.Second)
 
 	flow.Otp = otp
 	flow.OtpHash = otpHash
 	flow.OtpSalt = salt
-	flow.OtpExpiresAt = now.Add(otpTtl)
+	flow.OtpExpiresAt = now.Add(otpValidityTtl)
 	flow.ResendCount = flow.ResendCount + 1
 	flow.CooldownUntil = now.Add(cooldownTtl)
 	flow.Status = "ACTIVE"
 
-	// Step 7: Compute TTL for Redis save (keep flow alive until otp expiry)
-	ttl := time.Until(flow.OtpExpiresAt)
-	if ttl <= 0 {
-		ttl = otpTtl
-	}
-
-	if err := cache.SaveFlow(ctx, flow, ttl); err != nil {
+	if err := cache.SaveFlow(ctx, flow, otpTotalFlowTtl); err != nil {
 		log.Printf("redis error saving flow: %v", err.Error())
 	}
 
-	if err := cache.SetActiveFlow(ctx, email, flowId, ttl); err != nil {
+	if err := cache.SetActiveFlow(ctx, email, flowId, otpTotalFlowTtl); err != nil {
 		log.Printf("redis save active flow error: %v", err.Error())
 	}
 
@@ -267,9 +271,8 @@ type VerifyOTPRequest struct {
 }
 
 func VerifyForgotPasswordOTP(c *gin.Context) {
-	maxOtpAttempts, _ := strconv.Atoi(config.AppConfig.MaxOtpAttempts)
-	pwdFlowTtlInMinutes, _ := strconv.Atoi(config.AppConfig.PwdFlowTtlInMinutes)
-	pwdResetPepper := config.AppConfig.PwdResetPepper
+	resetFlowBlockBufferTtlInMinutes := config.AppConfig.ResetFlowBlockBufferTtlInMinutes
+	pwdResetTtlInMinutes := config.AppConfig.PwdResetTtlInMinutes
 
 	ctx := context.Background()
 
@@ -284,7 +287,7 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 	otp := strings.TrimSpace(req.OTP)
 
 	if len(otp) != 6 {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid OTP"})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "invalid OTP"})
 		return
 	}
 
@@ -297,7 +300,7 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
 		return
 	} else if activeFlowID == "" || activeFlowID != flowId {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid or expired flow"})
+		c.JSON(http.StatusGone, gin.H{"message": "invalid or expired flow"})
 		return
 	}
 
@@ -307,43 +310,38 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
 		return
 	} else if flow == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "flow not found or expired"})
+		c.JSON(http.StatusGone, gin.H{"message": "flow not found or expired"})
 		return
 	}
 
 	// Step 3: Check status
 	if flow.Status != "ACTIVE" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Flow is not active"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Flow is not active"})
 		return
 	}
 
 	now := time.Now().UTC()
-	pwdFlowTtl := time.Duration(pwdFlowTtlInMinutes) * (time.Minute)
+	pwdResetTtl := time.Duration(pwdResetTtlInMinutes) * (time.Minute)
 
 	// Step 4: Expiry check
 	if now.After(flow.OtpExpiresAt) {
 		flow.Status = "EXPIRED"
 
-		if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
-			log.Printf("redis save flow error: %v", err.Error())
-		}
-
-		if err := cache.DeleteActiveFlow(ctx, email); err != nil {
-			log.Printf("redis delete active flow error: %v", err.Error())
-		}
-
 		failureReason := "otp expired"
 		_ = db.InsertPasswordResetAudit(ctx, flowId, email, "EXPIRED", ip, userAgent, failureReason, flow.Attempts)
 
-		c.JSON(http.StatusBadRequest, gin.H{"message": "OTP expired"})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "OTP expired"})
 		return
 	}
 
 	// Step 5: Attempt count check
+	maxOtpAttempts := config.AppConfig.MaxOtpAttempts
 	if flow.Attempts >= maxOtpAttempts {
+		blockBufferTtl := time.Duration(resetFlowBlockBufferTtlInMinutes) * (time.Minute)
+
 		flow.Status = "BLOCKED"
 
-		if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
+		if err := cache.SaveFlow(ctx, flow, blockBufferTtl); err != nil {
 			log.Printf("redis save flow error: %v", err.Error())
 		}
 
@@ -354,18 +352,20 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 		failureReason := "verify attempts exceeded"
 		_ = db.InsertPasswordResetAudit(ctx, flowId, email, "BLOCKED", ip, userAgent, failureReason, flow.Attempts)
 
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Too many failed attempts"})
+		c.JSON(http.StatusTooManyRequests, gin.H{"message": "Too many failed attempts"})
 		return
 	}
 
-	calculatedHash := utils.HashOTP(otp, flow.OtpSalt, pwdResetPepper)
+	calculatedHash := utils.HashOTP(otp, flow.OtpSalt, config.AppConfig.PwdResetPepper)
 
 	if calculatedHash != flow.OtpHash {
 		flow.Attempts++
 		if flow.Attempts >= maxOtpAttempts {
+			blockBufferTtl := time.Duration(resetFlowBlockBufferTtlInMinutes) * (time.Minute)
+
 			flow.Status = "BLOCKED"
 
-			if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
+			if err := cache.SaveFlow(ctx, flow, blockBufferTtl); err != nil {
 				log.Printf("redis save flow error: %v", err.Error())
 			}
 
@@ -380,7 +380,7 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 			return
 		}
 
-		if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
+		if err := cache.SaveFlow(ctx, flow, pwdResetTtl); err != nil {
 			log.Printf("redis save flow error: %v", err.Error())
 		}
 
@@ -394,8 +394,12 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 	// Step 7: OTP verified successfully
 	flow.Status = "VERIFIED"
 
-	if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
+	if err := cache.SaveFlow(ctx, flow, pwdResetTtl); err != nil {
 		log.Printf("redis save flow error: %v", err.Error())
+	}
+
+	if err := cache.SetActiveTtl(ctx, email, pwdResetTtl); err != nil {
+		log.Printf("redis save ttl error: %v", err.Error())
 	}
 
 	_ = db.InsertPasswordResetAudit(ctx, flowId, email, "VERIFIED", ip, userAgent, "", flow.Attempts)
@@ -410,7 +414,7 @@ type ResetPasswordRequest struct {
 }
 
 func ResetPassword(c *gin.Context) {
-	pwdFlowTtlInMinutes, _ := strconv.Atoi(config.AppConfig.PwdFlowTtlInMinutes)
+	pwdResetTtlInMinutes := config.AppConfig.PwdResetTtlInMinutes
 
 	ctx := context.Background()
 
@@ -433,65 +437,61 @@ func ResetPassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
 		return
 	} else if activeFlowID == "" || activeFlowID != flowId {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid or expired flow"})
+		c.JSON(http.StatusGone, gin.H{"message": "invalid or expired flow"})
 		return
 	}
 
-	// Step 2: Get current hashed password and validate email
+	// Step 2: Fetch flow data
+	flow, err := cache.GetFlow(ctx, flowId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
+		return
+	} else if flow == nil {
+		c.JSON(http.StatusGone, gin.H{"message": "flow not found or expired"})
+		return
+	}
+
+	// Step 3: Get current hashed password and validate email
 	currentHashedPassword, err := db.GetUserHashedPassword(ctx, email)
 	if currentHashedPassword == "" && err == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Email does not exist"})
+		c.JSON(http.StatusNotFound, gin.H{"message": "Email does not exist"})
 		return
 	} else if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error in checking email", "error": err.Error()})
 		return
 	}
 
-	// Step 3: Fetch flow data
-	flow, err := cache.GetFlow(ctx, flowId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
-		return
-	} else if flow == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "flow not found or expired"})
-		return
-	}
-
 	// Step 4: Check flow status
 	if flow.Status != "VERIFIED" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Flow is not verified"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Flow is not verified"})
 		return
 	}
 
-	// Step 5: Hash new password
+	// Step 5: Check password uniqueness
+	if hash.CheckPasswordHash(newPassword, currentHashedPassword) {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "New password cannot be the same as the current password"})
+		return
+	}
+
+	// Step 6: Hash new password
 	newHashedPassword, err := hash.HashPassword(newPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not hash password", "error": err.Error()})
 		return
 	}
 
-	// Step 6: Check password uniqueness
-	if string(newHashedPassword) == currentHashedPassword {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "New password cannot be the same as the current password"})
-		return
-	}
-
 	// Step 7: Update password
 	if err := db.UpdateUserPassword(ctx, email, string(newHashedPassword)); err != nil {
-		if err == pgx.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{"message": "Email not found"})
-			return
-		}
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating password", "error": err.Error()})
 		return
 	}
 
 	// Step 8: Insert audit and mark flow completed
-	pwdFlowTtl := time.Duration(pwdFlowTtlInMinutes) * (time.Minute)
+	pwdResetTtl := time.Duration(pwdResetTtlInMinutes) * (time.Minute)
 
 	flow.Status = "COMPLETED"
 
-	if err := cache.SaveFlow(ctx, flow, pwdFlowTtl); err != nil {
+	if err := cache.SaveFlow(ctx, flow, pwdResetTtl); err != nil {
 		log.Printf("redis save flow error: %v", err.Error())
 	}
 

@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useAuthStore } from './store/auth';
 import { useUserStore } from './store/user';
 import { useRouter, useRoute } from 'vue-router'
+import PUBLIC_PAGES from './router/publicPages.js';
 
 const auth = useAuthStore();
 const user = useUserStore();
@@ -13,7 +14,7 @@ const isLoading = ref(true);
 onMounted(async () => {
   console.log('App mounted');
   await router.isReady();
-  const publicPages = ['/user/login', '/user/signup'];
+  const publicPages = PUBLIC_PAGES;
   try {
     await auth.checkAuth();
     console.log('checkAuth success');
