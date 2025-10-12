@@ -9,10 +9,11 @@ import (
 )
 
 type Config struct {
-	Port        string
-	DatabaseURL string
-	JwtSecret   string
-	RedisURL    string
+	Port         string
+	DatabaseURL  string
+	JwtSecret    string
+	RedisURL     string
+	DashboardURL string
 
 	IpPwdResetRateLimit      int
 	EmailPwdResetRateLimit   int
@@ -47,10 +48,11 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		Port:        mustGetEnv("PORT"),
-		DatabaseURL: mustGetEnv("DATABASE_URL"),
-		JwtSecret:   mustGetEnv("JWT_SECRET"),
-		RedisURL:    mustGetEnv("REDIS_URL"),
+		Port:         mustGetEnv("PORT"),
+		DatabaseURL:  mustGetEnv("DATABASE_URL"),
+		JwtSecret:    mustGetEnv("JWT_SECRET"),
+		RedisURL:     mustGetEnv("REDIS_URL"),
+		DashboardURL: getEnvAsString("DASHBOARD_URL"),
 
 		IpPwdResetRateLimit:      getEnvAsInt("IP_PWD_RESET_RATE_LIMIT"),
 		EmailPwdResetRateLimit:   getEnvAsInt("EMAIL_PWD_RESET_RATE_LIMIT"),

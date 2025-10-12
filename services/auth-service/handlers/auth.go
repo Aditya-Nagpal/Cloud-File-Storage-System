@@ -9,6 +9,7 @@ import (
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/config"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/db"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/models"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/services/sqs"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/hash"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/jwt"
 	"github.com/gin-gonic/gin"
@@ -58,6 +59,11 @@ func Register(c *gin.Context) {
 	// Insert user in db
 	if err := db.RegisterUser(ctx, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not create user", "error": err.Error()})
+		return
+	}
+
+	if err := sqs.PublishSignupSuccessEmail(ctx, req.Email, req); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not send signup email", "error": err.Error()})
 		return
 	}
 

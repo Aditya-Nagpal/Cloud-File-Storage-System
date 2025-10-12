@@ -38,6 +38,7 @@ func InitSQS() {
 	log.Println("SQS initialized for region:", config.AppConfig.AWSRegion)
 }
 
+// Publish sends a message to the queue
 func Publish(ctx context.Context, message models.NotificationMessage) error {
 	body, err := json.Marshal(message)
 	if err != nil {
@@ -57,8 +58,38 @@ func Publish(ctx context.Context, message models.NotificationMessage) error {
 	return nil
 }
 
-// Publish sends a message to the queue
-func PublishOTP(ctx context.Context, toEmail, otp, flowId string) error {
+func PublishSignupSuccessEmail(ctx context.Context, toEmail string, user models.User) error {
+	ep := models.EmailPayload{
+		To:       toEmail,
+		Subject:  "Welcome to FastFiles!",
+		Template: "signup_successful",
+		Data: map[string]any{
+			"Name":         user.Name,
+			"Email":        user.Email,
+			"Country":      user.Country,
+			"Timezone":     user.Timezone,
+			"Plan":         user.Plan,
+			"DashboardURL": config.AppConfig.DashboardURL,
+		},
+	}
+
+	payloadBytes, err := json.Marshal(ep)
+	if err != nil {
+		return err
+	}
+
+	msg := models.NotificationMessage{
+		Type:    "EMAIL",
+		Payload: json.RawMessage(payloadBytes),
+		Meta: map[string]any{
+			"Source": "auth-service",
+		},
+	}
+
+	return Publish(ctx, msg)
+}
+
+func PublishOtpEmail(ctx context.Context, toEmail, otp, flowId string) error {
 	ep := models.EmailPayload{
 		To:       toEmail,
 		Subject:  "Your password reset OTP",

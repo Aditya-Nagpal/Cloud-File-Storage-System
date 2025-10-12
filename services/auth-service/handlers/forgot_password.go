@@ -118,7 +118,7 @@ func StartPasswordReset(c *gin.Context) {
 	_ = db.InsertPasswordResetAudit(ctx, flowId, email, "PENDING", ip, userAgent, "", flow.Attempts)
 
 	// Step 7: Async send OTP via notification-service (fire and forget)
-	if err := sqs.PublishOTP(ctx, email, otp, flowId); err != nil {
+	if err := sqs.PublishOtpEmail(ctx, email, otp, flowId); err != nil {
 		log.Println("Failed to push notification message:", err)
 	}
 
@@ -254,7 +254,7 @@ func ResendForgotPassword(c *gin.Context) {
 	_ = db.InsertPasswordResetAudit(ctx, flowId, email, "RESENT", ip, userAgent, failureReason, flow.Attempts)
 
 	// Step 8: Async send OTP via notification-service (fire and forget)
-	if err := sqs.PublishOTP(ctx, email, otp, flowId); err != nil {
+	if err := sqs.PublishOtpEmail(ctx, email, otp, flowId); err != nil {
 		log.Println("Failed to push notification message:", err)
 	}
 

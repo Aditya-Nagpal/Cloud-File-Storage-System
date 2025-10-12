@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Our Platform</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    .content {
+      padding: 40px;
+    }
+    .greeting {
+      font-size: 16px;
+      color: #333333;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .info-item {
+      background-color: #f9f9f9;
+      padding: 16px;
+      border-radius: 4px;
+      border-left: 3px solid #667eea;
+    }
+    .info-label {
+      font-size: 12px;
+      color: #666666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .info-value {
+      font-size: 15px;
+      color: #333333;
+      font-weight: 500;
+    }
+    .cta-section {
+      text-align: center;
+      margin: 32px 0;
+    }
+    .cta-button {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      padding: 14px 40px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 16px;
+      transition: transform 0.2s;
+    }
+    .cta-button:hover {
+      transform: translateY(-2px);
+    }
+    .features {
+      background-color: #f9f9f9;
+      padding: 24px;
+      border-radius: 4px;
+      margin: 24px 0;
+    }
+    .features h3 {
+      margin-top: 0;
+      color: #333333;
+      font-size: 16px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #555555;
+      line-height: 1.6;
+    }
+    .feature-icon {
+      margin-right: 12px;
+      font-size: 18px;
+    }
+    .plan-badge {
+      display: inline-block;
+      background-color: #667eea;
+      color: #ffffff;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-top: 12px;
+    }
+    .footer {
+      background-color: #f9f9f9;
+      padding: 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #999999;
+      border-top: 1px solid #e9ecef;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎉 Welcome Aboard!</h1>
+    </div>
+    
+    <div class="content">
+      <p class="greeting">Hi {{.Name}},</p>
+      
+      <p class="greeting">Thank you for signing up! We're thrilled to have you join our community. Your account has been successfully created and is ready to use.</p>
+      
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">📧 Email</div>
+          <div class="info-value">{{.Email}}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">📍 Country</div>
+          <div class="info-value">{{.Country}}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">🕐 Timezone</div>
+          <div class="info-value">{{.Timezone}}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">📦 Plan</div>
+          <div class="info-value">{{.Plan}}</div>
+        </div>
+      </div>
+      
+      <div class="cta-section">
+        <a href="{{.DashboardURL}}" class="cta-button">Get Started →</a>
+      </div>
+      
+      <div class="features">
+        <h3>What's Next?</h3>
+        <div class="feature-item">
+          <span class="feature-icon">✓</span>
+          <span>Complete your profile to unlock additional features</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">✓</span>
+          <span>Explore our comprehensive documentation and guides</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">✓</span>
+          <span>Connect with our community and support team</span>
+        </div>
+        <!-- <div class="feature-item">
+          <span class="feature-icon">✓</span>
+          <span>Enable two-factor authentication for enhanced security</span>
+        </div> -->
+      </div>
+      
+      <p class="greeting">If you have any questions or need assistance, our support team is here to help. Don't hesitate to reach out!</p>
+    </div>
+    
+    <div class="footer">
+      <p>© 2025 Your Company. All rights reserved.</p>
+      <p>This is an automated message. Please do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>
