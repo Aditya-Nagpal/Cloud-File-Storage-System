@@ -99,9 +99,8 @@ import defaultImage from '../images/person.png';
 import { toast } from 'vue3-toastify';
 
 const userStore = useUserStore();
-// const user = userStore.user;
+
 let user = computed(() => userStore.user);
-console.log('user: ', user.value);
 const isEditing = ref(false);
 const isChangingDP = ref(false);
 const dpInput = ref(null);
@@ -158,9 +157,7 @@ const uploadDP = async () => {
 
 const removeDP = async () => {
   try {
-    await userStore.updateDisplayPicture({
-      'displayPicture': null
-    });
+    await userStore.removeDisplayPicture();
     toast.success('Display picture removed');
   } catch (err) {
     console.error('Remove DP failed', err);

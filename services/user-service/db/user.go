@@ -22,6 +22,15 @@ func GetProfleByEmail(ctx context.Context, email string) (*models.User, error) {
 	return &user, nil
 }
 
+func UpdateProfileDetails(ctx context.Context, user *models.UpdateUser) error {
+	query := `UPDATE users SET name = $1, age = $2 WHERE email = $3`
+	_, err := DB.Exec(ctx, query, user.Name, user.Age, user.Email)
+	if err != nil {
+		return fmt.Errorf("failed to update profile details: %w", err)
+	}
+	return nil
+}
+
 func UpdateDisplayPicture(ctx context.Context, userEmail, displayPictureURL string) error {
 	query := `UPDATE users SET display_picture = $1 WHERE email = $2`
 	_, err := DB.Exec(ctx, query, displayPictureURL, userEmail)
@@ -31,12 +40,10 @@ func UpdateDisplayPicture(ctx context.Context, userEmail, displayPictureURL stri
 	return nil
 }
 
-func UpdateProfileDetails(ctx context.Context, user *models.UpdateUser) error {
-	fmt.Println("Updating profile for user:", user)
-	query := `UPDATE users SET name = $1, age = $2 WHERE email = $3`
-	_, err := DB.Exec(ctx, query, user.Name, user.Age, user.Email)
+func DeleteDisplayPicture(ctx context.Context, userEmail string) error {
+	_, err := DB.Exec(ctx, `UPDATE users SET display_picture = NULL WHERE email = $1`, userEmail)
 	if err != nil {
-		return fmt.Errorf("failed to update profile details: %w", err)
+		return fmt.Errorf("failed to remove display picture: %w", err)
 	}
 	return nil
 }

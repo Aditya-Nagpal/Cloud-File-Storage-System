@@ -37,16 +37,29 @@ func UpdateProfileDetails(uploader *utils.S3Uploader) gin.HandlerFunc {
 			return
 		}
 
+		removeDp := c.Query("removeDp") == "true"
 		dpOnly := c.Query("dp") == "true"
 
-		if dpOnly {
+		if removeDp {
+			s3Key := "displayPictures/" + userEmail + "/"
+			if err := uploader.DeleteDisplayPicture(s3Key); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete display picture", "error": err.Error()})
+				return
+			}
+
+			if err := db.DeleteDisplayPicture(c.Request.Context(), userEmail); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to remove display picture from profile", "error": err.Error()})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{"message": "Display picture removed successfully"})
+		} else if dpOnly {
 			file, fileHeader, err := c.Request.FormFile("displayPicture")
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"message": "Display picture file is required"})
 				return
 			}
 
-			// s3Key := "displayPictures/" + userEmail + "/dp." + path.Ext(fileHeader.Filename)
 			s3Key := "displayPictures/" + userEmail + "/" + fileHeader.Filename
 
 			s3Url, err := uploader.UploadDisplayPicture(file, fileHeader, s3Key)

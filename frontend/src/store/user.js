@@ -24,6 +24,20 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    async updateUserProfile(payload) {
+      try {
+        console.log('Updating user profile with payload:', payload);
+        const response = await API.patch(`${UPDATE_USER_API}?dp=false`, payload);
+        console.log('User profile updated:', response.data);
+        this.user = { ...this.user, ...response.data.updatedUser }
+        localStorage.setItem('user', JSON.stringify(this.user));
+        return true;
+      } catch (error) {
+        console.error('Failed to update user:', error);
+        throw error;
+      }
+    },
+
     async updateDisplayPicture(payload) {
       try {
         const response = await API.patch(`${UPDATE_USER_API}?dp=true`, payload, {
@@ -41,16 +55,15 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    async updateUserProfile(payload) {
+    async removeDisplayPicture() {
       try {
-        console.log('Updating user profile with payload:', payload);
-        const response = await API.patch(`${UPDATE_USER_API}?dp=false`, payload);
-        console.log('User profile updated:', response.data);
-        this.user = { ...this.user, ...response.data.updatedUser }
+        const response = await API.patch(`${UPDATE_USER_API}?removeDp=true`);
+        console.log('Display picture removed:', response.data);
+        this.user.displayPicture = null;
         localStorage.setItem('user', JSON.stringify(this.user));
         return true;
       } catch (error) {
-        console.error('Failed to update user:', error);
+        console.error('Failed to remove dp: ', error);
         throw error;
       }
     }

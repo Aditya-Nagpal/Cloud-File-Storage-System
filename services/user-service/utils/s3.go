@@ -56,6 +56,32 @@ func (u *S3Uploader) UploadDisplayPicture(file multipart.File, header *multipart
 	return u.GetS3URL(key), err
 }
 
+func (u *S3Uploader) DeleteDisplayPicture(key string) error {
+	paginator := s3.NewListObjectsV2Paginator(u.Client, &s3.ListObjectsV2Input{
+		Bucket: aws.String(u.BucketName),
+		Prefix: aws.String(key),
+	})
+
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.TODO())
+		if err != nil {
+			return err
+		}
+
+		for _, obj := range page.Contents {
+			_, err := u.Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+				Bucket: aws.String(u.BucketName),
+				Key:    obj.Key,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to delete object %s: %w", *obj.Key, err)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (u *S3Uploader) GetS3URL(key string) string {
 	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", u.BucketName, u.Region, key)
 }
