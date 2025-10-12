@@ -57,9 +57,9 @@
         </div>
 
         <div class="text-center mt-4">
-            <p class="mb-0 text-muted">
-            Don't have an account? 
-            <a href="/user/signup" class="sign-up-link text-decoration-underline">Sign Up</a>
+            <p class="mb-0 text-muted d-flex justify-content-center">
+            Don't have an account?&nbsp;
+            <a href="/user/signup" class="sign-up-link text-decoration-underline mt-0">Sign Up</a>
             </p>
         </div>
     </form>

@@ -41,7 +41,7 @@
             type="button" 
             @click="togglePasswordVisibility('password')"
           >
-            <svg v-if="passwordType === 'password'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-slash-fill" viewBox="0 0 16 16">
+            <svg v-if="passwordType !== 'password'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-slash-fill" viewBox="0 0 16 16">
               <path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.38-4.38L2.91 3.209A8 8 0 0 0 13.792 10.79zm-4.229-4.229a4.5 4.5 0 0 1 4.301-5.698l-2.868 2.869a1.5 1.5 0 0 0-2.866 2.868l-2.868 2.868a8 8 0 0 0 10.82-10.82zm2.083-2.613a4.5 4.5 0 0 1 4.298 5.694l-2.867 2.867a1.5 1.5 0 0 0-2.867-2.867l-2.867-2.868a4.5 4.5 0 0 1 4.299-5.694z"/>
             </svg>
             <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">
@@ -66,7 +66,7 @@
             type="button" 
             @click="togglePasswordVisibility('confirm')"
           >
-            <svg v-if="confirmPasswordType === 'password'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-slash-fill" viewBox="0 0 16 16">
+            <svg v-if="confirmPasswordType !== 'password'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-slash-fill" viewBox="0 0 16 16">
               <path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.38-4.38L2.91 3.209A8 8 0 0 0 13.792 10.79zm-4.229-4.229a4.5 4.5 0 0 1 4.301-5.698l-2.868 2.869a1.5 1.5 0 0 0-2.866 2.868l-2.868 2.868a8 8 0 0 0 10.82-10.82zm2.083-2.613a4.5 4.5 0 0 1 4.298 5.694l-2.867 2.867a1.5 1.5 0 0 0-2.867-2.867l-2.867-2.868a4.5 4.5 0 0 1 4.299-5.694z"/>
             </svg>
             <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">
@@ -85,7 +85,7 @@
       </button>
       
       <div class="text-center mt-3">
-        <router-link to="/user/login" class="text-decoration-none back-link">
+        <router-link to="/user/login" class="text-decoration-none back-link" @click="resetAll">
             Back to Login
         </router-link>
       </div>
@@ -116,6 +116,13 @@ const PASSWORD_PATTERN_HINT = 'Password must be at least 8 characters long and i
 
 const passwordType = ref('password');
 const confirmPasswordType = ref('password');
+
+const resetAll = () => {
+  forgot.resetFlow();
+  if (redirectInterval) {
+      clearInterval(redirectInterval);
+  }
+};
 
 const handleFlowExpired = () => {
   flowExpired.value = true;

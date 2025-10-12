@@ -19,10 +19,16 @@
       </div>
 
       <div class="text-center mt-4">
-        <p class="mb-0 text-muted">
-          Remembered your password? 
-          <a href="/user/login" class="sign-in-link text-decoration-underline">Sign In</a>
+        <p class="mb-0 text-muted d-flex justify-content-center">
+          Remembered your password?&nbsp;
+          <a href="/user/login" class="sign-in-link text-decoration-underline mt-0">Sign In</a>
         </p>
+      </div>
+
+      <div class="text-center mt-3">
+        <router-link to="/user/login" class="text-decoration-none back-link">
+            Back to Login
+        </router-link>
       </div>
       
     </form>

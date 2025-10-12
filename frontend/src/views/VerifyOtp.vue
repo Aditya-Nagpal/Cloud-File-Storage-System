@@ -58,6 +58,12 @@
         </button>
       </div>
 
+      <div class="text-center mt-3">
+        <router-link to="/user/login" class="text-decoration-none back-link" @click="resetAll">
+            Back to Login
+        </router-link>
+      </div>
+
     </form>
   </div>
 </template>
@@ -104,6 +110,13 @@ const resetOtp = () => {
   setTimeout(() => {
     otpRefs.value[0]?.focus();
   }, 0);
+};
+
+const resetAll = () => {
+  resetOtp();
+  forgot.resetFlow();
+  cooldown.value = 0;
+  clearInterval(timer);
 };
 
 const handleInput = (index) => {
