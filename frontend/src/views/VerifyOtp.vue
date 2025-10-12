@@ -5,9 +5,9 @@
     <h2 class="text-center mb-5 fw-semibold">Verify OTP</h2>
 
     <div v-if="flowExpired" class="forgot-password-form flow-expired-message text-center">
-        <h3 class="text-danger mb-3 fw-bold">Session Expired</h3>
+        <h3 class="text-danger mb-3 fw-bold">Session Expiring...</h3>
         <p class="mb-4 text-secondary">
-            The password reset flow has expired. Please initiate the process again.
+          {{  redirectErrorMessage }}
         </p>
         <p class="text-primary fw-semibold">
             Redirecting to Login in <span class="text-danger fw-bold">{{ redirectTimer }}</span> seconds...
@@ -75,7 +75,9 @@ const forgot = useForgotPasswordStore()
 const router = useRouter()
 
 const flowExpired = ref(false);
-const redirectTimer = ref(5); 
+const redirectTimer = ref(5);
+const redirectErrorMessage = ref('');
+
 let redirectInterval;
 
 const otpDigits = ref(Array(OTP_LENGTH).fill(''));
@@ -139,6 +141,7 @@ const verify = async () => {
     router.push('/user/forgot-password/reset-password')
   } catch (err) {
     if (err.redirect) {
+      redirectErrorMessage.value = err.message || 'The verification flow has expired. Redirecting to login...';
       toast.error('Verification flow expired. Redirecting to login...');
       handleFlowExpired();
     } else {
@@ -156,6 +159,7 @@ const resend = async () => {
     startCooldown()
   } catch (err) {
     if (err.redirect) {
+      redirectErrorMessage.value = err.message || 'The verification flow has expired. Redirecting to login...';
       toast.error('Verification flow expired. Cannot resend. Redirecting to login...');
       handleFlowExpired();
     } else {
@@ -165,7 +169,9 @@ const resend = async () => {
 };
 
 function startCooldown() {
-  cooldown.value = 30
+  if(timer) clearInterval(timer);
+  
+  cooldown.value = Number(import.meta.env.VITE_RESEND_OTP_COOLDOWN_SECONDS) || 30;
   timer = setInterval(() => {
     if (cooldown.value > 0) cooldown.value--
     else clearInterval(timer)

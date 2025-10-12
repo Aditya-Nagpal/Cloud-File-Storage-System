@@ -51,13 +51,13 @@ func StartPasswordReset(c *gin.Context) {
 
 	ipCount, err := cache.IncrementRateIP(ctx, ip, time.Duration(otpRateLimitTtlInMinutes)*time.Minute)
 	if err == nil && ipCount > int64(ipPwdResetRateLimit) {
-		c.JSON(http.StatusTooManyRequests, gin.H{"message": "Too many requests from this IP: " + ip})
+		c.JSON(http.StatusTooManyRequests, gin.H{"message": fmt.Sprintf("Too many requests from this IP %s. Wait for %v minutes .", ip, otpRateLimitTtlInMinutes)})
 		return
 	}
 
 	emailCount, err := cache.IncrementRateEmail(ctx, email, time.Duration(otpRateLimitTtlInMinutes)*time.Minute)
 	if err == nil && emailCount > int64(emailPwdResetRateLimit) {
-		c.JSON(http.StatusTooManyRequests, gin.H{"message": "Too many requests for this email: " + email})
+		c.JSON(http.StatusTooManyRequests, gin.H{"message": fmt.Sprintf("Too many requests for this email %s. Wait for %v minutes .", email, otpRateLimitTtlInMinutes)})
 		return
 	}
 
@@ -161,7 +161,7 @@ func ResendForgotPassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
 		return
 	} else if activeFlowID == "" || activeFlowID != flowId {
-		c.JSON(http.StatusGone, gin.H{"message": "invalid or expired flow"})
+		c.JSON(http.StatusGone, gin.H{"message": "The password reset flow has expired. Please initiate the process again."})
 		return
 	}
 
@@ -171,14 +171,14 @@ func ResendForgotPassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
 		return
 	} else if flow == nil {
-		c.JSON(http.StatusGone, gin.H{"message": "flow not found or expired"})
+		c.JSON(http.StatusGone, gin.H{"message": "The password reset flow has expired. Please initiate the process again."})
 		return
 	}
 
 	// Step 3: Check status
 	validStatuses := []string{"ACTIVE", "EXPIRED"}
 	if !slices.Contains(validStatuses, flow.Status) {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Flow is not active or expired"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "The flow is not active or expired. Please initiate the process again."})
 		return
 	}
 
@@ -187,7 +187,7 @@ func ResendForgotPassword(c *gin.Context) {
 	// Step 4: Cooldown check
 	if !flow.CooldownUntil.IsZero() && now.Before(flow.CooldownUntil) {
 		remaining := max(int(flow.CooldownUntil.Sub(now).Seconds()), 0)
-		c.JSON(http.StatusTooManyRequests, gin.H{"message": fmt.Sprintf("Please wait %d seconds requesting another OTP", remaining)})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": fmt.Sprintf("Please wait %d seconds requesting another OTP", remaining)})
 		return
 	}
 
@@ -211,7 +211,7 @@ func ResendForgotPassword(c *gin.Context) {
 		failureReason := "reset attempts exceeded"
 		_ = db.InsertPasswordResetAudit(ctx, flowId, email, "CANCELLED", ip, userAgent, failureReason, flow.Attempts)
 
-		c.JSON(http.StatusTooManyRequests, gin.H{"message": "maximum resend attempts exceeded"})
+		c.JSON(http.StatusTooManyRequests, gin.H{"message": "You have exceeded the maximum number of OTP resends. Please initiate the password reset process again."})
 		return
 	}
 
@@ -300,7 +300,7 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
 		return
 	} else if activeFlowID == "" || activeFlowID != flowId {
-		c.JSON(http.StatusGone, gin.H{"message": "invalid or expired flow"})
+		c.JSON(http.StatusGone, gin.H{"message": "The password reset flow has expired. Please initiate the process again."})
 		return
 	}
 
@@ -310,13 +310,13 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
 		return
 	} else if flow == nil {
-		c.JSON(http.StatusGone, gin.H{"message": "flow not found or expired"})
+		c.JSON(http.StatusGone, gin.H{"message": "The password reset flow has expired. Please initiate the process again."})
 		return
 	}
 
 	// Step 3: Check status
 	if flow.Status != "ACTIVE" {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Flow is not active"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Flow is not active. Please initiate the process again."})
 		return
 	}
 
@@ -352,7 +352,7 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 		failureReason := "verify attempts exceeded"
 		_ = db.InsertPasswordResetAudit(ctx, flowId, email, "BLOCKED", ip, userAgent, failureReason, flow.Attempts)
 
-		c.JSON(http.StatusTooManyRequests, gin.H{"message": "Too many failed attempts"})
+		c.JSON(http.StatusTooManyRequests, gin.H{"message": "You have exceeded the maximum number of OTP verification attempts. Please initiate the password reset process again."})
 		return
 	}
 
@@ -376,7 +376,7 @@ func VerifyForgotPasswordOTP(c *gin.Context) {
 			failureReason := "verify attempts limit exceeded"
 			_ = db.InsertPasswordResetAudit(ctx, flowId, email, "BLOCKED", ip, userAgent, failureReason, flow.Attempts)
 
-			c.JSON(http.StatusTooManyRequests, gin.H{"message": "OTP blocked due to repeated failed attempts"})
+			c.JSON(http.StatusTooManyRequests, gin.H{"message": "You have exceeded the maximum number of OTP verification attempts. Please initiate the password reset process again."})
 			return
 		}
 
@@ -437,7 +437,7 @@ func ResetPassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
 		return
 	} else if activeFlowID == "" || activeFlowID != flowId {
-		c.JSON(http.StatusGone, gin.H{"message": "invalid or expired flow"})
+		c.JSON(http.StatusGone, gin.H{"message": "The password reset flow has expired. Please initiate the process again."})
 		return
 	}
 
@@ -447,23 +447,20 @@ func ResetPassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error": err.Error()})
 		return
 	} else if flow == nil {
-		c.JSON(http.StatusGone, gin.H{"message": "flow not found or expired"})
+		c.JSON(http.StatusGone, gin.H{"message": "The password reset flow has expired. Please initiate the process again."})
 		return
 	}
 
 	// Step 3: Get current hashed password and validate email
 	currentHashedPassword, err := db.GetUserHashedPassword(ctx, email)
-	if currentHashedPassword == "" && err == nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Email does not exist"})
-		return
-	} else if err != nil {
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error in checking email", "error": err.Error()})
 		return
 	}
 
 	// Step 4: Check flow status
 	if flow.Status != "VERIFIED" {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Flow is not verified"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Flow is not verified. Please initiate the process again."})
 		return
 	}
 

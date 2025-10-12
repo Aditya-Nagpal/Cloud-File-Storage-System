@@ -4,18 +4,7 @@
   <div class="forgot-password-page d-flex flex-column align-items-center py-5">
     <h2 class="text-center mb-5 fw-semibold">Forgot Password</h2>
 
-    <div v-if="flowExpired" class="forgot-password-form flow-expired-message text-center">
-        <h3 class="text-danger mb-3 fw-bold">Session Expired</h3>
-        <p class="mb-4 text-secondary">
-            The password reset flow has expired. Please initiate the process again.
-        </p>
-        <p class="text-primary fw-semibold">
-            Redirecting to Login in <span class="text-danger fw-bold">{{ redirectTimer }}</span> seconds...
-        </p>
-    </div>
-
-    <form v-else @submit.prevent="submitEmail" novalidate class="forgot-password-form">
-
+    <form @submit.prevent="submitEmail" novalidate class="forgot-password-form">
       <div class="row g-4 form-section">
         <div class="col-12">
           <label class="form-label">Enter your registered email *</label>
@@ -51,23 +40,6 @@ const email = ref('')
 const router = useRouter()
 const forgotPassword = useForgotPasswordStore()
 
-const flowExpired = ref(false);
-const redirectTimer = ref(5); 
-let redirectInterval;
-
-const handleFlowExpired = () => {
-  flowExpired.value = true;
-  
-  redirectInterval = setInterval(() => {
-    redirectTimer.value--;
-    if (redirectTimer.value <= 0) {
-      clearInterval(redirectInterval);
-      router.push('/user/login');
-    }
-  }, 1000);
-};
-
-
 const submitEmail = async () => {
   if (!email.value) {
     toast.error('Please enter your email address.');
@@ -80,21 +52,9 @@ const submitEmail = async () => {
     router.push('/user/forgot-password/verify-otp')
   } catch (error) {
     console.error('Error in submitEmail: ', error)
-    if (error.redirect) {
-        toast.error('The verification flow has expired. Redirecting to login...');
-        handleFlowExpired();
-    }
-    else {
-        toast.error(error.response?.data?.message || 'Error sending OTP')
-    }
+      toast.error(error.response?.data?.message || 'Error sending OTP')
   }
-}
-
-onUnmounted(() => {
-    if (redirectInterval) {
-        clearInterval(redirectInterval);
-    }
-});
+};
 </script>
 
 <style scoped>

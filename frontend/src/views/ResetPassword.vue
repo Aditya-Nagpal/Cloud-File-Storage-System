@@ -5,9 +5,9 @@
     <h2 class="text-center mb-5 fw-semibold">Set a New Password</h2>
 
     <div v-if="flowExpired" class="forgot-password-form flow-expired-message text-center">
-        <h3 class="text-danger mb-3 fw-bold">Session Expired</h3>
+        <h3 class="text-danger mb-3 fw-bold">Session Expiring...</h3>
         <p class="mb-4 text-secondary">
-            The password reset flow has expired. Please initiate the process again.
+          {{ redirectErrorMessage }}
         </p>
         <p class="text-primary fw-semibold">
             Redirecting to Login in <span class="text-danger fw-bold">{{ redirectTimer }}</span> seconds...
@@ -106,7 +106,9 @@ const forgot = useForgotPasswordStore()
 const router = useRouter()
 
 const flowExpired = ref(false);
-const redirectTimer = ref(5); 
+const redirectTimer = ref(5);
+const redirectErrorMessage = ref('');
+
 let redirectInterval;
 
 const PASSWORD_PATTERN_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -158,12 +160,13 @@ const resetPassword = async () => {
     await forgot.resetPassword(password.value)
     toast.success('Password changed successfully')
     router.push('/user/login')
-  } catch (err) {
-    if (err.redirect) {
+  } catch (error) {
+    if (error.redirect) {
+      redirectErrorMessage.value = error.message || 'The password reset flow has expired. Redirecting to login...';
       toast.error('Password reset flow expired. Redirecting to login...');
       handleFlowExpired();
     } else {
-      toast.error(err.response?.data?.message || 'Error resetting password')
+      toast.error(error.response?.data?.message || 'Error resetting password')
     }
   }
 }

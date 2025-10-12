@@ -41,7 +41,10 @@ export const useForgotPasswordStore = defineStore('forgotPassword', {
             } catch (error) {
                 if(RESET_FLOW_STATUSCODES.includes(error.response?.status)) {
                     this.resetFlow();
-                    throw { redirect: true, message: 'Too many requests' }
+                    throw {
+                        redirect: true,
+                        message: error.response?.data?.message || 'Error starting forgot password flow'
+                    };
                 }
                 throw error;
             }
@@ -57,7 +60,10 @@ export const useForgotPasswordStore = defineStore('forgotPassword', {
             } catch (error) {
                 if(RESET_FLOW_STATUSCODES.includes(error.response?.status)) {
                     this.resetFlow();
-                    throw { redirect: true, message: 'Too many requests' }
+                    throw {
+                        redirect: true, message: 'Too many requests',
+                        message: error.response?.data?.message || 'Error verifying OTP'
+                    };
                 }
                 throw error;
             }
@@ -69,9 +75,13 @@ export const useForgotPasswordStore = defineStore('forgotPassword', {
                 const res = await axios.post(RESEND_OTP_API, payload);
                 return res.data;
             } catch (error) {
+                console.log('Error in resendOtp: ', error);
                 if(RESET_FLOW_STATUSCODES.includes(error.response?.status)) {
                     this.resetFlow();
-                    throw { redirect: true, message: 'Too many requests' }
+                    throw {
+                        redirect: true,
+                        message: error.response?.data?.message || 'Error resending OTP'
+                    };
                 }
                 throw error;
             }
@@ -88,7 +98,10 @@ export const useForgotPasswordStore = defineStore('forgotPassword', {
             } catch (error) {
                 if(RESET_FLOW_STATUSCODES.includes(error.response?.status)) {
                     this.resetFlow();
-                    throw { redirect: true, message: 'Too many requests' }
+                    throw {
+                        redirect: true,
+                        message: error.response?.data?.message || 'Error resetting password'
+                    };
                 }
                 throw error;
             }
