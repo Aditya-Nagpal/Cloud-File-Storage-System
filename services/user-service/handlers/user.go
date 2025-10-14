@@ -26,6 +26,7 @@ func GetProfileDetails(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "User not found", "error": err.Error()})
 		return
 	}
+	user.Email = userEmail
 	c.JSON(http.StatusOK, gin.H{"profile": user})
 }
 

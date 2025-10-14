@@ -54,7 +54,7 @@ const showFileModal = ref(false);
 const showFolderModal = ref(false);
 
 const displayPictureUrl = computed(() => {
-  return user?.value?.displayPicture || defaultImage;
+  return user?.value?.display_picture || defaultImage;
 });
 
 const handleLogout = async () => {

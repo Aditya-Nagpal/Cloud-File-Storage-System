@@ -4,31 +4,31 @@
       <!-- Name (Row 1) -->
       <div class="row g-4 form-section">
         <div class="col-md-6">
-          <label class="form-label">First Name *</label>
-          <input v-model="form.firstName" type="text" class="form-control" required />
+          <label class="form-label" for="firstName">First Name *</label>
+          <input v-model="form.firstName" type="text" class="form-control" required id="firstName" />
         </div>
         <div class="col-md-6">
-          <label class="form-label">Last Name *</label>
-          <input v-model="form.lastName" type="text" class="form-control" required />
+          <label class="form-label" for="lastName">Last Name *</label>
+          <input v-model="form.lastName" type="text" class="form-control" required id="lastName" />
         </div>
       </div>
 
       <!-- Email (Row 2) -->
       <div class="row g-4 form-section">
         <div class="col-md-6">
-          <label class="form-label">Email *</label>
-          <input v-model="form.email" type="email" class="form-control" required />
+          <label class="form-label" for="email">Email *</label>
+          <input v-model="form.email" type="email" class="form-control" required id="email" />
         </div>
         <div class="col-md-6">
-          <label class="form-label">Alternate Email</label>
-          <input v-model="form.alternateEmail" type="email" class="form-control" />
+          <label class="form-label" for="alternateEmail">Alternate Email</label>
+          <input v-model="form.alternateEmail" type="email" class="form-control" id="alternateEmail" />
         </div>
       </div>
 
       <!-- Contact + Country (Row 3) -->
       <div class="row g-4 form-section">
         <div class="col-md-12">
-          <label class="form-label">Contact Number *</label>
+          <label class="form-label" for="contactNumber">Contact Number *</label>
           <div class="input-group">
             <button
               class="btn btn-outline-secondary d-flex align-items-center gap-2"
@@ -58,6 +58,7 @@
               @keypress="isNumberKey"
               @input="formatContactNumber"
               required
+              id="contactNumber"
             />
           </div>
         </div>
@@ -66,40 +67,39 @@
       <!-- Gender + DOB (Row 4) -->
       <div class="row g-4 form-section">
         <div class="col-md-6">
-          <label class="form-label">Gender *</label>
-          <select v-model="form.gender" class="form-select" required>
+          <label class="form-label" for="gender">Gender *</label>
+          <select v-model="form.gender" class="form-select" required id="gender">
             <option disabled value="">Select gender</option>
             <option v-for="g in genderOptions" :key="g" :value="g">{{ processGenderKey(g) }}</option>
           </select>
         </div>
 
         <div class="col-md-6">
-          <label class="form-label">Date Of Birth *</label>
-          <div class="input-group"> 
-            <input 
+          <label class="form-label" for="DOB">Date Of Birth *</label>
+          <input 
               v-model="form.dob" 
               type="date" 
               class="form-control" 
               required 
               placeholder="dd/mm/yyyy"
+              id="DOB"
             />
-          </div>
         </div>
       </div>
 
       <!-- Timezone + Plan (Row 5) -->
       <div class="row g-4 form-section">
         <div class="col-md-6">
-          <label class="form-label">Timezone *</label>
-          <select v-model="form.timezone" class="form-select" required>
+          <label class="form-label" for="timezone">Timezone *</label>
+          <select v-model="form.timezone" class="form-select" required id="timezone">
             <option disabled value="">Select timezone</option>
             <option v-for="t in timezones" :key="t" :value="t">{{ t }}</option>
           </select>
         </div>
 
         <div class="col-md-6">
-          <label class="form-label">Plan *</label>
-          <select v-model="form.plan" class="form-select" required>
+          <label class="form-label" for="plan">Plan *</label>
+          <select v-model="form.plan" class="form-select" required id="plan">
             <option disabled value="">Select plan</option>
             <option v-for="p in planOptions" :key="p" :value="p">{{ p }}</option>
           </select>
@@ -109,13 +109,13 @@
       <!-- About (Row 6) -->
       <div class="row g-4 form-section">
         <div class="col-12">
-          <label class="form-label">About</label>
+          <label class="form-label" for="about">About</label>
           <textarea
             v-model="form.about"
             rows="3"
             class="form-control"
             placeholder="Tell us about yourself..."
-            id="about-field"
+            id="about"
             :maxlength="MAX_ABOUT_CHARS"
           ></textarea>
           <div class="char-count-display">
@@ -128,7 +128,7 @@
       <div class="row g-4 form-section">
         <div class="col-md-6">
           <div class="d-flex align-items-center mb-2">
-            <label class="form-label mb-0">Password *</label>
+            <label class="form-label mb-0" for="password">Password *</label>
             <span 
                 class="password-info-icon ms-2"
                 :title="PASSWORD_REQUIREMENTS.message"
@@ -144,7 +144,8 @@
               v-model="form.password" 
               :type="passwordType" 
               class="form-control" 
-              required 
+              required
+              id="password"
             />
             <button 
                 class="btn btn-outline-secondary password-toggle-btn" 
@@ -168,13 +169,14 @@
           </div>
         </div>
         <div class="col-md-6">
-          <label class="form-label">Confirm Password *</label>
+          <label class="form-label" for="confirmPassword">Confirm Password *</label>
           <div class="input-group">
             <input 
               v-model="form.confirmPassword" 
               :type="confirmPasswordType" 
               class="form-control" 
               required 
+              id="confirmPassword"
             />
             <button 
                 class="btn btn-outline-secondary password-toggle-btn" 
@@ -205,8 +207,8 @@
           v-model="form.termsAndPrivacy"
           type="checkbox"
           class="form-check-input"
-          id="terms"
           required
+          id="terms"
         />
         <label for="terms" class="form-check-label d-flex align-items-start">
             I agree to the <a href="#" class="text-decoration-underline">Terms and Privacy Policy</a>
@@ -464,6 +466,10 @@ const handleSignUp = async () => {
 
 .input-group input.form-control {
     border-radius: 0.5rem 0 0 0.5rem !important;
+}
+
+#contactNumber {
+  border-radius: 0 0.5rem 0.5rem 0 !important;
 }
 
 .password-toggle-btn {

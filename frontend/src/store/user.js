@@ -12,10 +12,8 @@ export const useUserStore = defineStore('user', {
   actions: {
     async fetchUserProfile() {
       try {
-        console.log('Fetching user profile...');
         const response = await API.get(FETCH_USER_API);
         this.user = response.data.profile;
-        console.log('User profile fetched:', this.user);
         localStorage.setItem('user', JSON.stringify(this.user));
         return this.user;
       } catch (error) {
@@ -26,10 +24,13 @@ export const useUserStore = defineStore('user', {
 
     async updateUserProfile(payload) {
       try {
-        console.log('Updating user profile with payload:', payload);
         const response = await API.patch(`${UPDATE_USER_API}?dp=false`, payload);
-        console.log('User profile updated:', response.data);
-        this.user = { ...this.user, ...response.data.updatedUser }
+        const updatedUser = {};
+        for(let [key, value] of Object.entries(payload)) {
+          if (["",null,undefined,0].includes(value)) continue;
+          updatedUser[key] = value;
+        }
+        this.user = { ...this.user, ...updatedUser };
         localStorage.setItem('user', JSON.stringify(this.user));
         return true;
       } catch (error) {
@@ -45,7 +46,6 @@ export const useUserStore = defineStore('user', {
             "Content-Type": "multipart/form-data"
           }
         });
-        console.log('Display picture updated:', response.data);
         this.user.displayPicture = response.data.displayPicture;
         localStorage.setItem('user', JSON.stringify(this.user));
         return true;
@@ -58,7 +58,6 @@ export const useUserStore = defineStore('user', {
     async removeDisplayPicture() {
       try {
         const response = await API.patch(`${UPDATE_USER_API}?removeDp=true`);
-        console.log('Display picture removed:', response.data);
         this.user.displayPicture = null;
         localStorage.setItem('user', JSON.stringify(this.user));
         return true;
