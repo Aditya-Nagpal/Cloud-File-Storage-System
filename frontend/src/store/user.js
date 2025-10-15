@@ -26,7 +26,7 @@ export const useUserStore = defineStore('user', {
       try {
         const response = await API.patch(`${UPDATE_USER_API}?dp=false`, payload);
         const updatedUser = {};
-        for(let [key, value] of Object.entries(payload)) {
+        for(let [key, value] of Object.entries(response.data.updatedUser)) {
           if (["",null,undefined,0].includes(value)) continue;
           updatedUser[key] = value;
         }
@@ -46,7 +46,7 @@ export const useUserStore = defineStore('user', {
             "Content-Type": "multipart/form-data"
           }
         });
-        this.user.displayPicture = response.data.displayPicture;
+        this.user.display_picture = response.data.displayPicture;
         localStorage.setItem('user', JSON.stringify(this.user));
         return true;
       } catch (error) {
@@ -58,7 +58,7 @@ export const useUserStore = defineStore('user', {
     async removeDisplayPicture() {
       try {
         const response = await API.patch(`${UPDATE_USER_API}?removeDp=true`);
-        this.user.displayPicture = null;
+        this.user.display_picture = null;
         localStorage.setItem('user', JSON.stringify(this.user));
         return true;
       } catch (error) {

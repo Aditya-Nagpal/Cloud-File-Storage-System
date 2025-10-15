@@ -1,8 +1,8 @@
 <template>
   <nav class="navbar navbar-light bg-white border-bottom px-4 d-flex justify-content-between">
-    <h4 class="mt-2 fw-bold">FastFiles</h4>
+    <h4 class="mt-2 fw-bold"><a href="/" class="mt-0 text-black" style="text-decoration: none;">FastFiles</a></h4>
 
-    <div class="d-flex align-items-center gap-3">
+    <div v-if="isAuthenticated" class="d-flex align-items-center gap-3">
       <div class="dropdown">
         <button
           class="btn btn-primary dropdown-toggle"
@@ -12,7 +12,7 @@
           Upload
         </button>
         <ul class="dropdown-menu">
-          <li><a class="dropdown-item" href="#" @click.prevent="showFileModal = true">Upload File</a></li>
+          <li><a class="dropdown-item mt-0" href="#" @click.prevent="showFileModal = true">Upload File</a></li>
           <li><a class="dropdown-item" href="#" @click.prevent="showFolderModal = true">Upload Folder</a></li>
         </ul>
 
@@ -29,10 +29,19 @@
           data-bs-toggle="dropdown"
         />
         <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="/user/profile">View Profile</a></li>
+          <li><a class="dropdown-item mt-0" href="/user/profile">View Profile</a></li>
           <li><a class="dropdown-item" href="#" @click="handleLogout">Logout</a></li>
         </ul>
       </div>
+    </div>
+
+    <div v-else>
+      <button class="btn btn-outline-primary me-2" @click="router.push('/user/login')">
+        Login
+      </button>
+      <button class="btn btn-primary" @click="router.push('/user/signup')">
+        Sign Up
+      </button>
     </div>
   </nav>
 </template>
@@ -48,11 +57,13 @@ import { useUserStore } from '../store/user.js';
 
 const auth = useAuthStore();
 const userStore = useUserStore();
-const user = computed(() => userStore.user);
 const router = useRouter();
+
 const showFileModal = ref(false);
 const showFolderModal = ref(false);
 
+const user = computed(() => userStore.user);
+const isAuthenticated = computed(() => auth.isAuthenticated);
 const displayPictureUrl = computed(() => {
   return user?.value?.display_picture || defaultImage;
 });
@@ -68,3 +79,11 @@ const handleLogout = async () => {
 };
 
 </script>
+
+<style scoped>
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+</style>

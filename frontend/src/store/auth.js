@@ -37,7 +37,6 @@ export const useAuthStore = defineStore('auth', {
         const { accessToken } = response.data;
         this.accessToken = accessToken;
 
-        // save to local storage
         localStorage.setItem('accessToken', this.accessToken);
         return { accessToken };
       } catch (error) {
@@ -73,7 +72,7 @@ export const useAuthStore = defineStore('auth', {
     async refreshAccessToken() {
       try {
         const res = await axios.get(REFRESH_API, {
-          withCredentials: true // sends HttpOnly cookie
+          withCredentials: true
         });
         const { accessToken } = res.data;
 
@@ -90,8 +89,8 @@ export const useAuthStore = defineStore('auth', {
     }
   },
   getters: {
-    isAuthenticated(state) {
-      return !!state.accessToken;
+    isAuthenticated() {
+      return !!this.accessToken;
     },
   }
 });
