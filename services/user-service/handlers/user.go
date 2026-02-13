@@ -27,6 +27,9 @@ func GetProfileDetails(c *gin.Context) {
 		return
 	}
 	user.Email = userEmail
+	user.Age = utils.CalculateAge(user.DOB)
+	// dob := user.DOB
+	// fmt.Println(dob)
 	c.JSON(http.StatusOK, gin.H{"profile": user})
 }
 

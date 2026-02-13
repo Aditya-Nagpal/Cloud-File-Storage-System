@@ -8,7 +8,6 @@ type User struct {
 	Country         string `json:"country" binding:"required"`
 	Gender          string `json:"gender" binding:"required"`
 	DOB             string `json:"dob" binding:"required"`
-	Age             int    `json:"age" binding:"required"`
 	Timezone        string `json:"timezone" binding:"required"`
 	Plan            string `json:"plan" binding:"required"`
 	About           string `json:"about"`

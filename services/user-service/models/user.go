@@ -11,7 +11,7 @@ type User struct {
 	ContactNumber  string    `json:"contact_number" binding:"required,min=10"`
 	Gender         string    `json:"gender" binding:"required"`
 	DOB            time.Time `json:"dob" binding:"required"`
-	Age            int       `json:"age" binding:"required"`
+	Age            int       `json:"age" binding:"min=0"`
 	Country        string    `json:"country" binding:"required"`
 	Timezone       string    `json:"timezone" binding:"required"`
 	About          string    `json:"about" binding:"omitempty,max=500"`

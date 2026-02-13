@@ -29,7 +29,6 @@ func RegisterUser(ctx context.Context, user models.User) error {
 		contact_number,
 		gender,
 		dob,
-		age,
 		country,
 		timezone,
 		about,
@@ -38,7 +37,7 @@ func RegisterUser(ctx context.Context, user models.User) error {
 		terms_and_privacy,
 		created_at,
 		updated_at
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
 	dob, err := time.Parse("2006-01-02", user.DOB)
 	if err != nil {
@@ -51,7 +50,6 @@ func RegisterUser(ctx context.Context, user models.User) error {
 		user.ContactNumber,
 		user.Gender,
 		dob,
-		user.Age,
 		user.Country,
 		user.Timezone,
 		user.About,

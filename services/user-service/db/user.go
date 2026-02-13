@@ -17,7 +17,6 @@ func GetProfleByEmail(ctx context.Context, email string) (*models.User, error) {
 				contact_number,
 				gender,
 				dob,
-				age,
 				country,
 				timezone,
 				about,
@@ -28,7 +27,7 @@ func GetProfleByEmail(ctx context.Context, email string) (*models.User, error) {
 
 	var user models.User
 
-	err := DB.QueryRow(ctx, query, email).Scan(&user.Name, &user.AlternateEmail, &user.ContactNumber, &user.Gender, &user.DOB, &user.Age, &user.Country, &user.Timezone, &user.About, &user.Plan, &user.CreatedAt, &user.DisplayPicture)
+	err := DB.QueryRow(ctx, query, email).Scan(&user.Name, &user.AlternateEmail, &user.ContactNumber, &user.Gender, &user.DOB, &user.Country, &user.Timezone, &user.About, &user.Plan, &user.CreatedAt, &user.DisplayPicture)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	} else if err != nil {

@@ -293,18 +293,6 @@ const validateEmail = (text) => {
   return emailPattern.test(text);
 };
 
-const calculateAge = (dateString) => {
-  const birthDate = new Date(dateString);
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  let monthDiff = today.getMonth() - birthDate.getMonth();
-  const dayDiff = today.getDate() - birthDate.getDate();
-  if(monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-    age--;
-  }
-  return age;
-};
-
 const form = ref({
   firstName: '',
   lastName: '',
@@ -313,7 +301,6 @@ const form = ref({
   contactNumber: '',
   gender: '',
   dob: '',
-  age: 0,
   timezone: '',
   about: '',
   plan: '',
@@ -395,7 +382,6 @@ const handleSignUp = async () => {
 
   form.value.firstName = processNameKey(form.value.firstName);
   form.value.lastName = processNameKey(form.value.lastName);
-  form.value.age = calculateAge(form.value.dob);
   form.value.contactNumber = form.value.contactNumber.trim();
 
   const payload = {
@@ -437,7 +423,7 @@ const handleSignUp = async () => {
 }
 
 .form-section {
-    margin-top: 1.5rem; /* Added margin to vertical sections */
+    margin-top: 1.5rem;
 }
 
 .signup-form .form-section:first-of-type {
