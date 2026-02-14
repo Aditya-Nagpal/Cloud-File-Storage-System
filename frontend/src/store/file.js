@@ -85,6 +85,18 @@ export const useFileStore = defineStore('file', {
                 console.error('Error deleting content:', error);
                 throw error;
             }
+        },
+
+        async downloadFile(id) {
+            try {
+                const response = await API.get(`/file/download/${id}`);
+                const url = response.data.downloadURL;
+                window.location.href = url;
+                return true;
+            } catch (error) {
+                console.error('Error downloading file:', error);
+                throw error;
+            }
         }
     }
 });

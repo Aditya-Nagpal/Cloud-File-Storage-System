@@ -57,7 +57,7 @@ export const useUserStore = defineStore('user', {
 
     async removeDisplayPicture() {
       try {
-        const response = await API.patch(`${UPDATE_USER_API}?removeDp=true`);
+        await API.patch(`${UPDATE_USER_API}?removeDp=true`);
         this.user.display_picture = null;
         localStorage.setItem('user', JSON.stringify(this.user));
         return true;

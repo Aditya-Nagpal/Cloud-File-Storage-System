@@ -35,7 +35,7 @@
             ⋮
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="#" @click.prevent="downloadItem(item)">Download</a></li>
+            <li v-if="canDownload(item.type)"><a class="dropdown-item" href="#" @click.prevent="downloadItem(item)">Download</a></li>
             <li><a class="dropdown-item" href="#" @click.prevent="deleteItem(item)">Delete</a></li>
             <li><a class="dropdown-item" href="#" @click.prevent="showInfo(item)">File Information</a></li>
           </ul>
@@ -59,6 +59,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useFileStore } from '../store/file.js';
 import FileInfoModal from './FileInfoModal.vue';
 import ConfirmDeleteModal from './ConfirmDeleteModal.vue';
+import { toast } from 'vue3-toastify';
 
 const fileStore = useFileStore();
 
@@ -69,33 +70,40 @@ const showDeleteModal = ref(false);
 const selectedItemToDelete = ref(null);
 
 onMounted(async () => {
-  await fileStore.fetchContents();
+    await fileStore.fetchContents();
 });
 
 const canGoBack = computed(() => fileStore.keyStack.length > 0);
+const canDownload = (type) => type === 'file';
 
 const handleInfoModalClose = () => {
-  console.log('Info modal closed');
-  showInfoModal.value = false;
-  selectedItem.value = null;
+    console.log('Info modal closed');
+    showInfoModal.value = false;
+    selectedItem.value = null;
 };
 
 const handleDeleteModalClose = () => {
-  console.log('Delete modal closed');
-  showDeleteModal.value = false;
-  selectedItemToDelete.value = null;
+    console.log('Delete modal closed');
+    showDeleteModal.value = false;
+    selectedItemToDelete.value = null;
 };
 
 const showInfo = (item) => {
-  selectedItem.value = item
-  showInfoModal.value = true;
+    selectedItem.value = item
+    showInfoModal.value = true;
 };
 
-const downloadItem = (item) => {};
-
 const deleteItem = (item) => {
-  selectedItemToDelete.value = item;
-  showDeleteModal.value = true;
+    selectedItemToDelete.value = item;
+    showDeleteModal.value = true;
+};
+
+const downloadItem = async (item) => {
+    try {
+        await fileStore.downloadFile(item.id);
+    } catch (error) {
+        toast.error('Could not download file. Please try again later.');
+    }
 };
 
 </script>
