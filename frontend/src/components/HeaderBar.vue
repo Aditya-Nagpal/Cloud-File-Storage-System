@@ -3,7 +3,7 @@
     <h4 class="mt-2 fw-bold"><a href="/" class="mt-0 text-black" style="text-decoration: none;">FastFiles</a></h4>
 
     <div v-if="isAuthenticated" class="d-flex align-items-center gap-3">
-      <div class="dropdown">
+      <div class="dropdown" v-if="displayUploadButton">
         <button
           class="btn btn-primary dropdown-toggle"
           type="button"
@@ -48,7 +48,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import FolderModal from './FolderModal.vue';
 import FileModal from './FileModal.vue';
 import defaultImage from '../images/person.png';
@@ -58,6 +58,7 @@ import { useUserStore } from '../store/user.js';
 const auth = useAuthStore();
 const userStore = useUserStore();
 const router = useRouter();
+const route = useRoute();
 
 const showFileModal = ref(false);
 const showFolderModal = ref(false);
@@ -66,6 +67,9 @@ const user = computed(() => userStore.user);
 const isAuthenticated = computed(() => auth.isAuthenticated);
 const displayPictureUrl = computed(() => {
   return user?.value?.display_picture || defaultImage;
+});
+const displayUploadButton = computed(() => {
+  return isAuthenticated.value && route.path === '/';
 });
 
 const handleLogout = async () => {
