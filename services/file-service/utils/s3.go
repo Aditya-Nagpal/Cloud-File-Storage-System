@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
+	"time"
 
 	ConfigEnv "github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/config"
 
@@ -13,10 +14,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	// "github.com/aws/aws-sdk-go-v2/service/s3/s3presign"
 )
 
 type S3Uploader struct {
 	Client     *s3.Client
+	Presigner  *s3.PresignClient
 	BucketName string
 	Region     string
 }
@@ -39,8 +42,11 @@ func NewS3Uploader() (*S3Uploader, error) {
 
 	client := s3.NewFromConfig(cfg)
 
+	presignClient := s3.NewPresignClient(client)
+
 	return &S3Uploader{
 		Client:     client,
+		Presigner:  presignClient,
 		BucketName: ConfigEnv.AppConfig.BucketName,
 		Region:     ConfigEnv.AppConfig.AWSRegion,
 	}, nil
@@ -104,4 +110,19 @@ func (u *S3Uploader) DeleteObject(prefix string, isFolder bool) error {
 
 func (u *S3Uploader) GetS3URL(key string) string {
 	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", u.BucketName, u.Region, key)
+}
+
+func (u *S3Uploader) GeneratePresignedURL(key string, expiry time.Duration, filename string) (string, error) {
+	presignResult, err := u.Presigner.PresignGetObject(context.TODO(), &s3.GetObjectInput{
+		Bucket:                     aws.String(u.BucketName),
+		Key:                        aws.String(key),
+		ResponseContentDisposition: aws.String(`attachment; filename="` + filename + `"`),
+	}, func(options *s3.PresignOptions) {
+		options.Expires = expiry
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return presignResult.URL, nil
 }

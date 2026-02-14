@@ -17,18 +17,18 @@ func InsertFileMetadata(ctx context.Context, meta *models.FileMetaData) error {
 }
 
 type ListFileResponse struct {
+	Id          int       `json:"id"`
 	UserEmail   string    `json:"user_email"`
 	FileName    string    `json:"filename"`
 	ContentType string    `json:"content_type"`
 	Size        int64     `json:"size"`
-	S3URL       string    `json:"s3_url"`
 	UploadedAt  time.Time `json:"uploaded_at"`
 	Type        string    `json:"type"`
 }
 
 func GetFilesByPrefix(ctx context.Context, userEmail string, prefix string) ([]ListFileResponse, error) {
 	query := `
-		SELECT user_email, filename, content_type, size, s3_url, uploaded_at, type FROM file_metadata
+		SELECT id, user_email, filename, content_type, size, uploaded_at, type FROM file_metadata
 		WHERE user_email = $1 AND parent_path = $2
 		ORDER BY uploaded_at DESC
 	`
@@ -41,7 +41,7 @@ func GetFilesByPrefix(ctx context.Context, userEmail string, prefix string) ([]L
 	var files []ListFileResponse
 	for rows.Next() {
 		var file ListFileResponse
-		err := rows.Scan(&file.UserEmail, &file.FileName, &file.ContentType, &file.Size, &file.S3URL, &file.UploadedAt, &file.Type)
+		err := rows.Scan(&file.Id, &file.UserEmail, &file.FileName, &file.ContentType, &file.Size, &file.UploadedAt, &file.Type)
 		if err != nil {
 			return nil, err
 		}
@@ -52,8 +52,7 @@ func GetFilesByPrefix(ctx context.Context, userEmail string, prefix string) ([]L
 }
 
 func DeleteFileMetadata(ctx context.Context, userEmail string, parentPath string, fileName string, isFolder bool) error {
-	key := userEmail + "/" + parentPath + fileName
-	parentPath = userEmail + "/" + parentPath
+	key := parentPath + fileName
 	if isFolder {
 		key += "/"
 		query := `DELETE FROM file_metadata WHERE user_email = $1 AND (parent_path = $2 OR parent_path LIKE $3)`
@@ -70,4 +69,24 @@ func DeleteFileMetadata(ctx context.Context, userEmail string, parentPath string
 	query := `DELETE FROM file_metadata WHERE user_email = $1 AND parent_path = $2 AND filename = $3`
 	_, err := DB.Exec(ctx, query, userEmail, parentPath, fileName)
 	return err
+}
+
+type FileRecord struct {
+	UserEmail  string `json:"user_email"`
+	FileName   string `json:"filename"`
+	ParentPath string `json:"parent_path"`
+	Type       string `json:"type"`
+}
+
+func GetFileRecordByID(ctx context.Context, id int) (*FileRecord, error) {
+	query := `SELECT user_email, filename, parent_path, type FROM file_metadata WHERE id = $1`
+	row := DB.QueryRow(ctx, query, id)
+
+	var record FileRecord
+	err := row.Scan(&record.UserEmail, &record.FileName, &record.ParentPath, &record.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	return &record, nil
 }

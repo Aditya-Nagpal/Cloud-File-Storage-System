@@ -513,7 +513,6 @@ label {
   border-radius: 0.5rem 0 0 0.5rem;
 }
 
-/* FIX 1: Explicitly remove all focus/active/hover box-shadows from the button */
 .country-btn:hover:not(:disabled),
 .country-btn:focus:not(:disabled),
 .country-btn:active:not(:disabled),
@@ -522,19 +521,17 @@ label {
   box-shadow: none !important;
 }
 
-/* FIX 2: Ensure the disabled state has light borders and no dark outline/box-shadow */
 .input-group > .form-control[disabled],
 .country-btn[disabled] {
     border-color: #e2e8f0 !important;
     box-shadow: none !important;
-    outline: none !important; /* Added outline removal for robustness */
+    outline: none !important;
 }
 
-/* FIX 3: Re-apply disabled visual style to button (but without dark border) */
 .country-btn[disabled] {
     background-color: #e5e7eb !important;
     color: #6b7280;
-    opacity: 1; /* Reset opacity */
+    opacity: 1;
 }
 
 .char-count-display {

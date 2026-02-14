@@ -23,7 +23,7 @@
           <i :class="item.type === 'folder' ? 'bi bi-folder-fill' : 'bi bi-file-earmark'" class="me-2"></i>
           {{ item.filename }}
         </div>
-        <!-- <small>{{ item.type }}</small> -->
+        
         <div class="dropdown">
           <button
             class="btn btn-sm btn-light dropdown-toggle"
