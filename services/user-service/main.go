@@ -1,14 +1,11 @@
 package main
 
 import (
-	// "time"
-
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service/config"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service/db"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service/routes"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service/utils"
 
-	// "github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 

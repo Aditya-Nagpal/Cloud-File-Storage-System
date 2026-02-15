@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
 	"strconv"
@@ -78,7 +79,7 @@ func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userEmail string) {
 		ContentType: fileHeader.Header.Get("Content-Type"),
 		Size:        fileHeader.Size,
 		ParentPath:  parentPath,
-		S3URL:       uploader.GetS3URL(key),
+		S3URL:       sql.NullString{String: uploader.GetS3URL(key), Valid: true},
 		UploadedAt:  time.Now(),
 		Type:        "file",
 	}
@@ -110,7 +111,7 @@ func uploadFolder(c *gin.Context, uploader *utils.S3Uploader, userEmail string) 
 		ContentType: "application/x-directory",
 		Size:        0,
 		ParentPath:  parentPath,
-		S3URL:       uploader.GetS3URL(key),
+		S3URL:       sql.NullString{Valid: false},
 		UploadedAt:  time.Now(),
 		Type:        "folder",
 	}
