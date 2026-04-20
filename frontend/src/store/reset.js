@@ -13,4 +13,5 @@ export const resetAllStores = () => {
 export const resetLocalStorage = () => {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('user');
+  localStorage.removeItem('userId');
 };

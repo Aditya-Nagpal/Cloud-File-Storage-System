@@ -23,13 +23,11 @@ func GetProfileDetails(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "User not found", "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to get profile details", "error": err.Error()})
 		return
 	}
 	user.Email = userEmail
 	user.Age = utils.CalculateAge(user.DOB)
-	// dob := user.DOB
-	// fmt.Println(dob)
 	c.JSON(http.StatusOK, gin.H{"profile": user})
 }
 

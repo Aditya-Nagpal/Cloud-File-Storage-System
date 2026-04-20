@@ -34,7 +34,7 @@ API.interceptors.response.use(
         if(error.response?.status === 401 && !originalRequest._retry){
             originalRequest._retry = true;
             const authStore = useAuthStore();
-            if(isRefreshing){
+            if(isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({resolve, reject});
                 })

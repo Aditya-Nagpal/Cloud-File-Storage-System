@@ -2,10 +2,64 @@ package db
 
 import (
 	"context"
-	"time"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/models"
+	"github.com/jackc/pgx/v5"
 )
+
+func GetInternalID(ctx context.Context, publicId string, userId int64) (*int64, error) {
+	query := `SELECT id FROM entries WHERE public_id = $1 AND user_id = $2 AND deleted_at IS NULL`
+
+	var internalId int64
+	err := DB.QueryRow(ctx, query, publicId, userId).Scan(&internalId)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &internalId, nil
+}
+
+func GetFilesByParentId(ctx context.Context, userId int64, internalParentID *int64) ([]models.ListFileResponse, error) {
+	query := `
+		SELECT
+			public_id,
+			name,
+			type,
+			content_type,
+			size,
+			created_at,
+			updated_at
+		FROM entries
+		WHERE user_id = $1
+			AND (
+				($2::BIGINT IS NULL AND parent_id IS NULL)
+				OR
+				(parent_id = $2)
+			)
+			AND deleted_at IS NULL
+		ORDER BY
+			type DESC,
+			updated_at DESC
+	`
+	rows, err := DB.Query(ctx, query, userId, internalParentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	files := make([]models.ListFileResponse, 0)
+	for rows.Next() {
+		var file models.ListFileResponse
+		err := rows.Scan(&file.PublicId, &file.Name, &file.Type, &file.ContentType, &file.Size, &file.CreatedAt, &file.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, file)
+	}
+
+	return files, nil
+}
 
 func InsertFileMetadata(ctx context.Context, meta *models.FileMetaData) error {
 	query := `
@@ -14,41 +68,6 @@ func InsertFileMetadata(ctx context.Context, meta *models.FileMetaData) error {
 	`
 	_, err := DB.Exec(ctx, query, meta.UserEmail, meta.FileName, meta.ContentType, meta.Size, meta.ParentPath, meta.S3URL, meta.UploadedAt, meta.Type)
 	return err
-}
-
-type ListFileResponse struct {
-	Id          int       `json:"id"`
-	UserEmail   string    `json:"user_email"`
-	FileName    string    `json:"filename"`
-	ContentType string    `json:"content_type"`
-	Size        int64     `json:"size"`
-	UploadedAt  time.Time `json:"uploaded_at"`
-	Type        string    `json:"type"`
-}
-
-func GetFilesByPrefix(ctx context.Context, userEmail string, prefix string) ([]ListFileResponse, error) {
-	query := `
-		SELECT id, user_email, filename, content_type, size, uploaded_at, type FROM file_metadata
-		WHERE user_email = $1 AND parent_path = $2
-		ORDER BY uploaded_at DESC
-	`
-	rows, err := DB.Query(ctx, query, userEmail, prefix)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var files []ListFileResponse
-	for rows.Next() {
-		var file ListFileResponse
-		err := rows.Scan(&file.Id, &file.UserEmail, &file.FileName, &file.ContentType, &file.Size, &file.UploadedAt, &file.Type)
-		if err != nil {
-			return nil, err
-		}
-		files = append(files, file)
-	}
-
-	return files, nil
 }
 
 func DeleteFileMetadata(ctx context.Context, userEmail string, parentPath string, fileName string, isFolder bool) error {

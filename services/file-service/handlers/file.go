@@ -10,27 +10,41 @@ import (
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/db"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/models"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/utils"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/httputils"
 	"github.com/gin-gonic/gin"
 )
 
-func ListFilesByPrefix() gin.HandlerFunc {
+func ListFilesByParentId() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userEmail := c.GetHeader("X-User-Email")
-		if userEmail == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"message": "X-User-Email header is missing"})
+		userId, err := httputils.GetUserIdHeader(c)
+		if httputils.HandleUserIdHeaderError(c, err) {
 			return
 		}
 
-		parentPath := c.Query("parentPath")
-		parentPath = userEmail + "/" + parentPath
+		publicParentID := c.Query("parent_id")
 
-		files, err := db.GetFilesByPrefix(c.Request.Context(), userEmail, parentPath)
+		var internalParentID *int64
+		if publicParentID != "" {
+			id, err := db.GetInternalID(c.Request.Context(), publicParentID, userId)
+			if id == nil && err == nil {
+				c.JSON(http.StatusNotFound, gin.H{"message": "Parent directory not found"})
+				return
+			} else if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to get internal ID", "error": err.Error()})
+				return
+			}
+
+			internalParentID = id
+		}
+
+		files, err := db.GetFilesByParentId(c.Request.Context(), userId, internalParentID)
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve files from database", "error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"files": files})
+		c.JSON(http.StatusOK, files)
 	}
 }
 

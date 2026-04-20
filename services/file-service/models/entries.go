@@ -5,6 +5,16 @@ import (
 	"time"
 )
 
+type ListFileResponse struct {
+	PublicId    int64     `json:"public_id"`
+	Name        string    `json:"name"`
+	Type        string    `json:"type"`
+	ContentType string    `json:"content_type"`
+	Size        int64     `json:"size"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 type FileMetaData struct {
 	Id          int            `db:"id"`
 	UserEmail   string         `db:"user_email"`
