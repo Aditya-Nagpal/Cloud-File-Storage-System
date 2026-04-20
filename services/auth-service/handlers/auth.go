@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -33,16 +34,6 @@ func Register(c *gin.Context) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	password := strings.TrimSpace(req.Password)
 
-	// Check if email already exists
-	exists, err := db.DoesEmailExist(ctx, email)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not check email existance", "error": err.Error()})
-		return
-	} else if exists {
-		c.JSON(http.StatusConflict, gin.H{"message": "Email already registered"})
-		return
-	}
-
 	// Hash password
 	hashedPassword, err := hash.HashPassword(password)
 	if err != nil {
@@ -58,6 +49,12 @@ func Register(c *gin.Context) {
 
 	// Insert user in db
 	if err := db.RegisterUser(ctx, req); err != nil {
+		// Check user already exists
+		fmt.Println(err.Error())
+		if err.Error() == "EMAIL_ALREADY_EXISTS" {
+			c.JSON(http.StatusConflict, gin.H{"message": "Email already registered"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not create user", "error": err.Error()})
 		return
 	}

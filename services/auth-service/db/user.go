@@ -2,24 +2,15 @@ package db
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service/models"
 
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
-
-func DoesEmailExist(ctx context.Context, email string) (bool, error) {
-	var count int
-
-	err := DB.QueryRow(ctx, "SELECT COUNT(id) FROM users WHERE email = $1", email).Scan(&count)
-	if err != nil {
-		return false, err
-	}
-
-	return count > 0, nil
-}
 
 func RegisterUser(ctx context.Context, user models.User) error {
 	query := `INSERT INTO users (
@@ -60,8 +51,11 @@ func RegisterUser(ctx context.Context, user models.User) error {
 		time.Now(),
 	)
 	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			_ = pgErr
+		fmt.Print("error: ", err, err.Error())
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			fmt.Println("EMAIL_ALREADY_EXISTS", pgErr.Code)
+			return fmt.Errorf("EMAIL_ALREADY_EXISTS")
 		}
 		return err
 	}
