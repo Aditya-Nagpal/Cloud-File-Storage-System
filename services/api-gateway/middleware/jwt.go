@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/jwt"
@@ -25,6 +26,6 @@ func JWTMiddleware(secret string) gin.HandlerFunc {
 		}
 
 		// Add user info to headers
-		c.Request.Header.Set("X-User-Email", claims.Email)
+		c.Request.Header.Set("X-User-Id", strconv.FormatInt(claims.UserId, 10))
 	}
 }

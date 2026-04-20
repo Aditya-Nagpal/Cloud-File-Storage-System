@@ -31,7 +31,6 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	email := strings.ToLower(strings.TrimSpace(req.Email))
 	password := strings.TrimSpace(req.Password)
 
 	// Hash password
@@ -41,11 +40,17 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	req.Email = email
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 	req.Password = string(hashedPassword)
 	req.Name = strings.TrimSpace(req.Name)
 	req.AlternateEmail = strings.ToLower(strings.TrimSpace(req.AlternateEmail))
 	req.ContactNumber = strings.TrimSpace(req.ContactNumber)
+	req.About = strings.TrimSpace(req.About)
+
+	if req.Email == req.AlternateEmail {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Alternate email cannot be same as email"})
+		return
+	}
 
 	// Insert user in db
 	if err := db.RegisterUser(ctx, req); err != nil {
@@ -85,12 +90,18 @@ func Login(c *gin.Context) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	password := strings.TrimSpace(req.Password)
 
-	hashedPassword, err := db.GetUserHashedPassword(ctx, email)
-	if hashedPassword == "" && err == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid email or password"})
+	userLogin, err := db.GetUserLoginDetails(ctx, email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error in getting login details", "error": err.Error()})
 		return
-	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error in checking email", "error": err.Error()})
+	} else if userLogin == nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Invalid email or password"})
+		return
+	}
+
+	var hashedPassword = userLogin.Password
+	if hashedPassword == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid email or password"})
 		return
 	}
 
@@ -100,14 +111,14 @@ func Login(c *gin.Context) {
 	}
 
 	// Generate access token short-lived
-	accessToken, err := jwt.GenerateWithExpiry(email, config.AppConfig.JwtSecret, 2*time.Hour)
+	accessToken, err := jwt.GenerateWithExpiry(userLogin.Id, config.AppConfig.JwtSecret, 2*time.Hour)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not access generate token", "error": err.Error()})
 		return
 	}
 
 	// Generate refresh token long-lived
-	refreshToken, err := jwt.GenerateWithExpiry(email, config.AppConfig.JwtSecret, 7*24*time.Hour)
+	refreshToken, err := jwt.GenerateWithExpiry(userLogin.Id, config.AppConfig.JwtSecret, 7*24*time.Hour)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not refresh generate token", "error": err.Error()})
 		return
@@ -117,6 +128,7 @@ func Login(c *gin.Context) {
 	c.SetCookie("refreshToken", refreshToken, 7*24*60*60, "/", "localhost", false, true)
 
 	c.JSON(http.StatusOK, gin.H{
+		"userId":       userLogin.Id,
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
 	})
@@ -130,12 +142,12 @@ func RefreshToken(c *gin.Context) {
 	}
 
 	claims, err := jwt.Verify(refreshToken, config.AppConfig.JwtSecret)
-	if err != nil || claims == nil || claims.Email == "" {
+	if err != nil || claims == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid or expired refresh token"})
 		return
 	}
 
-	newAccessToken, err := jwt.GenerateWithExpiry(claims.Email, config.AppConfig.JwtSecret, 15*time.Minute)
+	newAccessToken, err := jwt.GenerateWithExpiry(claims.UserId, config.AppConfig.JwtSecret, 15*time.Minute)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not generate new access token"})
 		return

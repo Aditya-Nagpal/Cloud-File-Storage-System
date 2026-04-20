@@ -7,13 +7,13 @@ import (
 )
 
 type Claims struct {
-	Email string `json:"email"`
+	UserId int64 `json:"userId"`
 	jwt.RegisteredClaims
 }
 
-func GenerateWithExpiry(email string, jwtSecret string, expiryTime time.Duration) (string, error) {
+func GenerateWithExpiry(userId int64, jwtSecret string, expiryTime time.Duration) (string, error) {
 	claims := &Claims{
-		Email: email,
+		UserId: userId,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "auth-service",
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -26,7 +26,7 @@ func GenerateWithExpiry(email string, jwtSecret string, expiryTime time.Duration
 }
 
 func Verify(tokenStr string, jwtSecret string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (any, error) {
 		return []byte(jwtSecret), nil
 	})
 

@@ -13,10 +13,10 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/logout", handlers.Logout)
 
 	r.GET("/protected", middleware.JWTMiddleware(), func(c *gin.Context) {
-		email, _ := c.Get("email")
+		userId, _ := c.Get("userId")
 		c.JSON(200, gin.H{
 			"message": "Authenticated",
-			"user":    email,
+			"userId":  userId,
 		})
 	})
 

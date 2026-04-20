@@ -43,15 +43,15 @@ func JWTMiddleware() gin.HandlerFunc {
 		defer cancel()
 
 		var exists bool
-		query := `SELECT EXISTS(SELECT 1 FROM users WHERE email=$1)`
-		err = db.DB.QueryRow(ctx, query, claims.Email).Scan(&exists)
+		query := `SELECT EXISTS(SELECT 1 FROM users WHERE id=$1)`
+		err = db.DB.QueryRow(ctx, query, claims.UserId).Scan(&exists)
 		if err != nil || !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User no longer exists"})
 			c.Abort()
 			return
 		}
 
-		c.Set("email", claims.Email)
+		c.Set("userId", claims.UserId)
 
 		c.Next()
 	}

@@ -51,15 +51,26 @@ func RegisterUser(ctx context.Context, user models.User) error {
 		time.Now(),
 	)
 	if err != nil {
-		fmt.Print("error: ", err, err.Error())
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			fmt.Println("EMAIL_ALREADY_EXISTS", pgErr.Code)
 			return fmt.Errorf("EMAIL_ALREADY_EXISTS")
 		}
 		return err
 	}
 	return nil
+}
+
+func GetUserLoginDetails(ctx context.Context, email string) (*models.UserLogin, error) {
+	var userLogin models.UserLogin
+
+	err := DB.QueryRow(ctx, `SELECT id, password FROM users WHERE email=$1`, email).Scan(&userLogin.Id, &userLogin.Password)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &userLogin, nil
 }
 
 func GetUserHashedPassword(ctx context.Context, email string) (string, error) {

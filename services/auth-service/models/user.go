@@ -16,3 +16,8 @@ type User struct {
 }
 
 var Users = make(map[string]User)
+
+type UserLogin struct {
+	Id       int64  `json:"id" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
