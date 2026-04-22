@@ -48,94 +48,140 @@ func ListFilesByParentId() gin.HandlerFunc {
 	}
 }
 
+type UploadRequest struct {
+	Name           string `json:"name"`
+	PublicParentID string `json:"parentId"`
+	EntityType     string `json:"entityType" binding:"required"`
+}
+
 func Upload(uploader *utils.S3Uploader) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		uploadType := c.PostForm("uploadType")
-
-		userEmail := c.GetHeader("X-User-Email")
-		if userEmail == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"message": "X-User-Email header is missing"})
+		var req UploadRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body", "error": err.Error()})
 			return
 		}
-		switch uploadType {
-		case "file":
-			UploadFile(c, uploader, userEmail)
-		case "folder":
-			uploadFolder(c, uploader, userEmail)
-			c.JSON(http.StatusOK, gin.H{"response": "res"})
-		default:
-			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid uploadType, must be 'file' or 'folder'"})
+
+		userId, err := httputils.GetUserIdHeader(c)
+		if httputils.HandleUserIdHeaderError(c, err) {
+			return
 		}
+
+		entityType := req.EntityType
+		publicParentID := req.PublicParentID
+
+		var internalParentID *int64
+		if publicParentID != "" {
+			id, err := db.GetInternalID(c.Request.Context(), publicParentID, userId)
+			if id == nil && err == nil {
+				c.JSON(http.StatusNotFound, gin.H{"message": "Parent directory not found"})
+				return
+			} else if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to get internal ID", "error": err.Error()})
+				return
+			}
+
+			internalParentID = id
+		}
+
+		publicId, err := utils.GenerateUniqueID(12)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate unique ID", "error": err.Error()})
+			return
+		}
+
+		switch entityType {
+		case "file":
+			UploadFile(c, uploader, userId, publicId, internalParentID)
+		case "folder":
+			name := req.Name
+			if name == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"message": "Folder name is required"})
+				return
+			}
+			UploadFolder(c, userId, publicId, name, internalParentID)
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid entityType, must be 'file' or 'folder'"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"response": "res"})
 	}
 }
 
-func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userEmail string) {
-	file, fileHeader, err := c.Request.FormFile("file")
+func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userId int64, publicId string, internalParentID *int64) {
+	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to get uploaded file", "error": err.Error()})
 		return
 	}
 	defer file.Close()
 
-	parentPath := c.PostForm("folderKey")
-	parentPath = utils.GetParentPath(userEmail, parentPath)
-	key := parentPath + fileHeader.Filename
+	baseName, ext := utils.ParseFilename(header.Filename)
+	size := header.Size
+	s3Key := utils.CreateS3Key(userId, publicId, ext)
 
-	err = uploader.UploadFile(file, fileHeader, key)
+	err = uploader.UploadFile(file, header, s3Key)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to upload file to S3", "error": err.Error()})
 		return
 	}
 
-	metadata := models.FileMetaData{
-		UserEmail:   userEmail,
-		FileName:    fileHeader.Filename,
-		ContentType: fileHeader.Header.Get("Content-Type"),
-		Size:        fileHeader.Size,
-		ParentPath:  parentPath,
-		S3URL:       sql.NullString{String: uploader.GetS3URL(key), Valid: true},
-		UploadedAt:  time.Now(),
-		Type:        "file",
+	parentId := sql.NullInt64{Valid: false}
+	if internalParentID != nil {
+		parentId = sql.NullInt64{Int64: *internalParentID, Valid: true}
 	}
 
-	err = db.InsertFileMetadata(c.Request.Context(), &metadata)
+	entryData := models.EntryData{
+		PublicId:    publicId,
+		UserId:      userId,
+		ParentId:    parentId.Int64,
+		Name:        baseName,
+		Type:        "FILE",
+		ContentType: header.Header.Get("Content-Type"),
+		Extension:   ext,
+		Size:        size,
+		S3Key:       sql.NullString{String: s3Key, Valid: true},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	err = db.InsertEntryData(c.Request.Context(), &entryData)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store metadata to database", "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store entry data to db", "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully", "metadata": "metadata"})
+	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully"})
 }
 
-func uploadFolder(c *gin.Context, uploader *utils.S3Uploader, userEmail string) {
-	parentPath := c.PostForm("folderKey")
-	folderName := c.PostForm("folderName")
-	parentPath = utils.GetParentPath(userEmail, parentPath)
-	key := parentPath + folderName + "/"
-
-	err := uploader.UploadFolder(key)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create folder", "error": err.Error()})
-		return
+func UploadFolder(c *gin.Context, userId int64, publicId string, name string, internalParentID *int64) {
+	parentId := sql.NullInt64{Valid: false}
+	if internalParentID != nil {
+		parentId = sql.NullInt64{Int64: *internalParentID, Valid: true}
 	}
 
-	metadata := models.FileMetaData{
-		UserEmail:   userEmail,
-		FileName:    folderName,
+	entryData := models.EntryData{
+		PublicId:    publicId,
+		UserId:      userId,
+		ParentId:    parentId.Int64,
+		Name:        name,
+		Type:        "FOLDER",
 		ContentType: "application/x-directory",
+		Extension:   "",
 		Size:        0,
-		ParentPath:  parentPath,
-		S3URL:       sql.NullString{Valid: false},
-		UploadedAt:  time.Now(),
-		Type:        "folder",
+		S3Key:       sql.NullString{Valid: false},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
-	if err := db.InsertFileMetadata(c.Request.Context(), &metadata); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store metadata to database", "error": err.Error()})
+	err := db.InsertEntryData(c.Request.Context(), &entryData)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store entry data to db", "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Folder created", "metadata": metadata})
+	c.JSON(http.StatusOK, gin.H{"message": "Folder uploaded successfully"})
 }
 
 type DeleteRequest struct {

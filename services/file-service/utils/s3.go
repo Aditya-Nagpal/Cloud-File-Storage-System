@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
-	"net/http"
 	"time"
 
 	ConfigEnv "github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/config"
@@ -61,15 +60,6 @@ func (u *S3Uploader) UploadFile(file multipart.File, fileHeader *multipart.FileH
 		Body:        file,
 		ContentType: aws.String(fileHeader.Header.Get("Content-Type")),
 		ACL:         types.ObjectCannedACLPublicRead, // For public read access
-	})
-	return err
-}
-
-func (u *S3Uploader) UploadFolder(key string) error {
-	_, err := u.Client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket: aws.String(u.BucketName),
-		Key:    aws.String(key),
-		Body:   http.NoBody, // empty content
 	})
 	return err
 }

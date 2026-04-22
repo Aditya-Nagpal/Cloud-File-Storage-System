@@ -61,12 +61,12 @@ func GetFilesByParentId(ctx context.Context, userId int64, internalParentID *int
 	return files, nil
 }
 
-func InsertFileMetadata(ctx context.Context, meta *models.FileMetaData) error {
+func InsertEntryData(ctx context.Context, data *models.EntryData) error {
 	query := `
-		INSERT INTO file_metadata (user_email, filename, content_type, size, parent_path, s3_url, uploaded_at, type)
-	    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO file_metadata (public_id, user_id, parent_id, name, type, content_type, extension, size, s3_key, created_at, updated_at)
+	    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
-	_, err := DB.Exec(ctx, query, meta.UserEmail, meta.FileName, meta.ContentType, meta.Size, meta.ParentPath, meta.S3URL, meta.UploadedAt, meta.Type)
+	_, err := DB.Exec(ctx, query, data.PublicId, data.UserId, data.ParentId, data.Name, data.Type, data.ContentType, data.Extension, data.Size, data.S3Key, data.CreatedAt, data.UpdatedAt)
 	return err
 }
 
