@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/models"
 	"github.com/jackc/pgx/v5"
@@ -18,6 +20,19 @@ func GetInternalID(ctx context.Context, publicId string, userId int64) (*int64, 
 		return nil, err
 	}
 	return &internalId, nil
+}
+
+func GetEntityType(ctx context.Context, publicId string, userId int64) (string, error) {
+	query := `SELECT type FROM entries WHERE public_id = $1 AND user_id = $2 AND deleted_at IS NULL`
+
+	var entityType string
+	err := DB.QueryRow(ctx, query, publicId, userId).Scan(&entityType)
+	if err == pgx.ErrNoRows {
+		return "", nil
+	} else if err != nil {
+		return "", err
+	}
+	return strings.ToLower(entityType), nil
 }
 
 func GetFilesByParentId(ctx context.Context, userId int64, internalParentID *int64) ([]models.ListFileResponse, error) {
@@ -70,42 +85,56 @@ func InsertEntryData(ctx context.Context, data *models.EntryData) error {
 	return err
 }
 
-func DeleteFileMetadata(ctx context.Context, userEmail string, parentPath string, fileName string, isFolder bool) error {
-	key := parentPath + fileName
-	if isFolder {
-		key += "/"
-		query := `DELETE FROM file_metadata WHERE user_email = $1 AND (parent_path = $2 OR parent_path LIKE $3)`
-		likePattern := key + "%"
-		_, err := DB.Exec(ctx, query, userEmail, key, likePattern)
-		if err != nil {
-			return err
-		}
+func DeleteFile(ctx context.Context, publicId string, userId int64) error {
+	query := `
+		UPDATE entries
+		SET deleted_at = CURRENT_TIMESTAMP
+		WHERE public_id = $1 AND user_id = $2 AND type = 'FILE' AND deleted_at IS NULL
+	`
 
-		delSelf := `DELETE FROM file_metadata WHERE user_email = $1 AND parent_path = $2 AND filename = $3`
-		_, err = DB.Exec(ctx, delSelf, userEmail, parentPath, fileName)
+	err := DB.QueryRow(ctx, query, publicId, userId).Scan()
+	if err == pgx.ErrNoRows {
+		return fmt.Errorf("file not found or already deleted")
+	} else if err != nil {
 		return err
 	}
-	query := `DELETE FROM file_metadata WHERE user_email = $1 AND parent_path = $2 AND filename = $3`
-	_, err := DB.Exec(ctx, query, userEmail, parentPath, fileName)
-	return err
+	return nil
 }
 
-type FileRecord struct {
-	UserEmail  string `json:"user_email"`
-	FileName   string `json:"filename"`
-	ParentPath string `json:"parent_path"`
-	Type       string `json:"type"`
+func DeleteFolder(ctx context.Context, publicId string, userId int64) error {
+	query := `
+		WITH RECURSIVE descendants AS (
+			SELECT id FROM entries
+			WHERE public_id = $1 AND user_id = $2 AND type = 'FOLDER' AND deleted_at IS NULL
+			UNION ALL
+			SELECT e.id FROM entries e
+			INNER JOIN descendants d ON e.parent_id = d.id
+			WHERE e.deleted_at IS NULL
+		)
+		UPDATE entries
+		SET deleted_at = CURRENT_TIMESTAMP
+		WHERE id IN (SELECT id FROM descendants)
+	`
+
+	err := DB.QueryRow(ctx, query, publicId, userId).Scan()
+	if err == pgx.ErrNoRows {
+		return fmt.Errorf("file not found or already deleted")
+	} else if err != nil {
+		return err
+	}
+	return nil
 }
 
-func GetFileRecordByID(ctx context.Context, id int) (*FileRecord, error) {
-	query := `SELECT user_email, filename, parent_path, type FROM file_metadata WHERE id = $1`
-	row := DB.QueryRow(ctx, query, id)
+func GetDeleteFile(ctx context.Context, publicId string, userId int64) (*models.DeleteFile, error) {
+	query := `SELECT name, type, s3_key FROM entries WHERE public_id = $1 AND user_id = $2`
 
-	var record FileRecord
-	err := row.Scan(&record.UserEmail, &record.FileName, &record.ParentPath, &record.Type)
-	if err != nil {
+	var file models.DeleteFile
+	err := DB.QueryRow(ctx, query, publicId, userId).Scan(&file.Name, &file.Type, &file.S3Key)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 
-	return &record, nil
+	return &file, nil
 }

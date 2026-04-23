@@ -2,9 +2,7 @@ package handlers
 
 import (
 	"database/sql"
-	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/db"
@@ -192,76 +190,73 @@ type DeleteRequest struct {
 
 func DeleteContent(uploader *utils.S3Uploader) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var req DeleteRequest
-		if err := c.ShouldBindJSON(&req); err != nil || req.FileName == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body", "error": err.Error()})
+		publicID := c.Param("id")
+		if publicID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid public ID"})
 			return
 		}
 
-		userEmail := c.GetHeader("X-User-Email")
-		if userEmail == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Missing user email"})
+		userId, err := httputils.GetUserIdHeader(c)
+		if httputils.HandleUserIdHeaderError(c, err) {
 			return
 		}
 
-		parentPath := req.ParentPath
-		parentPath = utils.GetParentPath(userEmail, parentPath)
-		key := parentPath + req.FileName
-		isFolder := false
-		if req.Type == "folder" {
-			key += "/"
-			isFolder = true
-		}
-
-		if err := uploader.DeleteObject(key, isFolder); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete object from S3", "error": err.Error()})
+		entityType, err := db.GetEntityType(c.Request.Context(), publicID, userId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to get entity type", "error": err.Error()})
 			return
 		}
 
-		if err := db.DeleteFileMetadata(c.Request.Context(), userEmail, parentPath, req.FileName, isFolder); err != nil {
-			log.Printf("Failed to delete metadata for %s: %v", key, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete metadata from database", "error": err.Error()})
+		switch entityType {
+		case "file":
+			err = db.DeleteFile(c.Request.Context(), publicID, userId)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete file", "error": err.Error()})
+				return
+			}
+		case "folder":
+			err = db.DeleteFolder(c.Request.Context(), publicID, userId)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete folder", "error": err.Error()})
+				return
+			}
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid entity type"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"message": "deleted successfully", "a": req, "key": key, "isFolder": isFolder})
+
+		c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully"})
 	}
 }
 
 func DownloadFile(uploader *utils.S3Uploader) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userEmail := c.GetHeader("X-User-Email")
-		if userEmail == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Missing user email"})
+		publicID := c.Param("id")
+		if publicID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid public ID"})
 			return
 		}
 
-		idParam := c.Param("id")
-		id, err := strconv.Atoi(idParam)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid file ID"})
+		userId, err := httputils.GetUserIdHeader(c)
+		if httputils.HandleUserIdHeaderError(c, err) {
 			return
 		}
 
-		fileRecode, err := db.GetFileRecordByID(c.Request.Context(), id)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"message": "File not found", "error": err.Error()})
+		file, err := db.GetDeleteFile(c.Request.Context(), publicID, userId)
+		if file == nil && err == nil {
+			c.JSON(http.StatusNotFound, gin.H{"message": "File not found"})
+			return
+		} else if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to get file record", "error": err.Error()})
 			return
 		}
 
-		if fileRecode.UserEmail != userEmail {
-			c.JSON(http.StatusForbidden, gin.H{"message": "Access denied"})
+		if file.Type != "FILE" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Cannot download a non-file entity"})
 			return
 		}
 
-		if fileRecode.Type == "folder" {
-			c.JSON(http.StatusBadRequest, gin.H{"message": "Cannot download a folder"})
-			return
-		}
-
-		parentPath := fileRecode.ParentPath
-		key := parentPath + fileRecode.FileName
-
-		url, err := uploader.GeneratePresignedURL(key, 2*time.Minute, fileRecode.FileName)
+		url, err := uploader.GeneratePresignedURL(file.S3Key, 30*time.Second, file.Name)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate download URL", "error": err.Error()})
 			return

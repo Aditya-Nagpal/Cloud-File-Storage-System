@@ -30,3 +30,9 @@ type EntryData struct {
 	UpdatedAt   time.Time      `db:"updated_at"`
 	DeletedAt   time.Time      `db:"deleted_at"`
 }
+
+type DeleteFile struct {
+	Name  string `db:"name"`
+	Type  string `db:"type"`
+	S3Key string `db:"s3_key"`
+}
