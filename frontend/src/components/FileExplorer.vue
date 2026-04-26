@@ -12,16 +12,16 @@
     <ul class="list-group">
       <li
         v-for="item in fileStore.contents"
-        :key="item.filename"
+        :key="item.name"
         class="list-group-item d-flex justify-content-between align-items-center"
         style="cursor: pointer;"
       >
         <div
-          @click="item.type === 'folder' ? fileStore.enterFolder(item.filename) : null"
+          @click="item.type === 'FOLDER' ? fileStore.enterFolder(item.name, item.public_id) : null"
           style="cursor: pointer;"
         >
-          <i :class="item.type === 'folder' ? 'bi bi-folder-fill' : 'bi bi-file-earmark'" class="me-2"></i>
-          {{ item.filename }}
+          <i :class="item.type === 'FOLDER' ? 'bi bi-folder-fill' : 'bi bi-file-earmark'" class="me-2"></i>
+          {{ item.name }}
         </div>
         
         <div class="dropdown">
@@ -40,17 +40,13 @@
             <li><a class="dropdown-item" href="#" @click.prevent="showInfo(item)">File Information</a></li>
           </ul>
 
-          <FileInfoModal :show="showInfoModal" :item="selectedItem" @close="handleInfoModalClose" />
-
-          <ConfirmDeleteModal
-            :show="showDeleteModal"
-            :item="selectedItemToDelete"
-            @close="handleDeleteModalClose"
-          />
-
         </div>
       </li>
     </ul>
+    
+    <FileInfoModal :show="showInfoModal" :item="selectedItem" @close="handleInfoModalClose" />
+    <ConfirmDeleteModal :show="showDeleteModal" :item="selectedItemToDelete" @close="handleDeleteModalClose" />
+
   </div>
 </template>
 
@@ -74,7 +70,7 @@ onMounted(async () => {
 });
 
 const canGoBack = computed(() => fileStore.keyStack.length > 0);
-const canDownload = (type) => type === 'file';
+const canDownload = (type) => type === 'FILE';
 
 const handleInfoModalClose = () => {
     console.log('Info modal closed');
@@ -100,7 +96,7 @@ const deleteItem = (item) => {
 
 const downloadItem = async (item) => {
     try {
-        await fileStore.downloadFile(item.id);
+        await fileStore.downloadFile(item.public_id);
     } catch (error) {
         toast.error('Could not download file. Please try again later.');
     }

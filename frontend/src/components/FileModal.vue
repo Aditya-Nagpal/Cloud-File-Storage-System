@@ -5,7 +5,7 @@
 
         <div class="modal-header">
           <h5 class="modal-title">Upload File</h5>
-          <button type="button" class="btn-close" @click="emit('close')" />
+          <button type="button" class="btn-close" @click="close" />
         </div>
 
         <div class="modal-body">
@@ -16,7 +16,7 @@
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="emit('close')">Cancel</button>
+          <button class="btn btn-secondary" @click="close">Cancel</button>
           <button class="btn btn-primary" :disabled="!selectedFile || uploading" @click="handleFileUpload">
             <span v-if="uploading" class="spinner-border spinner-border-sm me-1"></span>
             Upload
@@ -48,6 +48,7 @@ const handleFileChange = (e) => {
 };
 
 const close = () => {
+  selectedFile.value = null;
   emit('close');
 };
 
@@ -56,12 +57,13 @@ const handleFileUpload = async () => {
   uploading.value = true;
 
   try {
-    close();
     await fileStore.uploadFile(selectedFile.value);
+    close();
     await fileStore.fetchContents();
     selectedFile.value = null;
   } catch (error) {
     console.error('Upload failed:', error);
+    selectedFile.value = null;
   } finally {
     uploading.value = false;
   }

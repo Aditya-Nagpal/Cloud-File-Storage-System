@@ -10,7 +10,7 @@
 
         <div class="modal-body">
           <p>
-            Are you sure you want to delete <strong>{{ item.filename }}</strong>
+            Are you sure you want to delete <strong>{{ item.name }}</strong>
             from <strong>{{ fileStore.currentKey || '/' }}</strong>?
           </p>
         </div>
@@ -40,8 +40,8 @@ const fileStore = useFileStore();
 const deleteEntity =  async (item) => {
   try {
     console.log('Deleting item:', item);
+    await fileStore.deleteContent(item.public_id, item.type);
     close();
-    await fileStore.deleteContent(item.filename, item.type);
     await fileStore.fetchContents();
   } catch (error) {
     console.error('Error deleting item:', error);

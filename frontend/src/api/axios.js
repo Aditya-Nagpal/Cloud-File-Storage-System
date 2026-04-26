@@ -52,6 +52,7 @@ API.interceptors.response.use(
                 const res = await axios.get(REFRESH_API, {
                     withCredentials: true // sends HttpOnly cookie
                 });
+                console.log('Token refreshed:', res.data);
                 const newToken = res.data.accessToken;
                 authStore.setAccessToken(newToken);
 

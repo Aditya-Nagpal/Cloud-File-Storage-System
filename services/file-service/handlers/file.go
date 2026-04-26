@@ -46,27 +46,15 @@ func ListFilesByParentId() gin.HandlerFunc {
 	}
 }
 
-type UploadRequest struct {
-	Name           string `json:"name"`
-	PublicParentID string `json:"parentId"`
-	EntityType     string `json:"entityType" binding:"required"`
-}
-
 func Upload(uploader *utils.S3Uploader) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var req UploadRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body", "error": err.Error()})
-			return
-		}
-
 		userId, err := httputils.GetUserIdHeader(c)
 		if httputils.HandleUserIdHeaderError(c, err) {
 			return
 		}
 
-		entityType := req.EntityType
-		publicParentID := req.PublicParentID
+		entityType := c.Request.FormValue("entityType")
+		publicParentID := c.Request.FormValue("parentId")
 
 		var internalParentID *int64
 		if publicParentID != "" {
@@ -90,28 +78,36 @@ func Upload(uploader *utils.S3Uploader) gin.HandlerFunc {
 
 		switch entityType {
 		case "file":
-			UploadFile(c, uploader, userId, publicId, internalParentID)
+			err = UploadFile(c, uploader, userId, publicId, internalParentID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to upload file", "error": err.Error()})
+				return
+			}
 		case "folder":
-			name := req.Name
+			name := c.Request.FormValue("name")
 			if name == "" {
 				c.JSON(http.StatusBadRequest, gin.H{"message": "Folder name is required"})
 				return
 			}
-			UploadFolder(c, userId, publicId, name, internalParentID)
+			err = UploadFolder(c, userId, publicId, name, internalParentID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to upload folder", "error": err.Error()})
+				return
+			}
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid entityType, must be 'file' or 'folder'"})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"response": "res"})
+		c.JSON(http.StatusOK, gin.H{"message": "Upload Successful", "publicId": publicId})
 	}
 }
 
-func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userId int64, publicId string, internalParentID *int64) {
+func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userId int64, publicId string, internalParentID *int64) error {
 	file, header, err := c.Request.FormFile("file")
+
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to get uploaded file", "error": err.Error()})
-		return
+		return err
 	}
 	defer file.Close()
 
@@ -121,19 +117,18 @@ func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userId int64, public
 
 	err = uploader.UploadFile(file, header, s3Key)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to upload file to S3", "error": err.Error()})
-		return
+		return err
 	}
 
-	parentId := sql.NullInt64{Valid: false}
+	var parentId *int64
 	if internalParentID != nil {
-		parentId = sql.NullInt64{Int64: *internalParentID, Valid: true}
+		parentId = internalParentID
 	}
 
 	entryData := models.EntryData{
 		PublicId:    publicId,
 		UserId:      userId,
-		ParentId:    parentId.Int64,
+		ParentId:    parentId,
 		Name:        baseName,
 		Type:        "FILE",
 		ContentType: header.Header.Get("Content-Type"),
@@ -146,23 +141,22 @@ func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userId int64, public
 
 	err = db.InsertEntryData(c.Request.Context(), &entryData)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store entry data to db", "error": err.Error()})
-		return
+		return err
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully"})
+	return nil
 }
 
-func UploadFolder(c *gin.Context, userId int64, publicId string, name string, internalParentID *int64) {
-	parentId := sql.NullInt64{Valid: false}
+func UploadFolder(c *gin.Context, userId int64, publicId string, name string, internalParentID *int64) error {
+	var parentId *int64
 	if internalParentID != nil {
-		parentId = sql.NullInt64{Int64: *internalParentID, Valid: true}
+		parentId = internalParentID
 	}
 
 	entryData := models.EntryData{
 		PublicId:    publicId,
 		UserId:      userId,
-		ParentId:    parentId.Int64,
+		ParentId:    parentId,
 		Name:        name,
 		Type:        "FOLDER",
 		ContentType: "application/x-directory",
@@ -175,11 +169,10 @@ func UploadFolder(c *gin.Context, userId int64, publicId string, name string, in
 
 	err := db.InsertEntryData(c.Request.Context(), &entryData)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store entry data to db", "error": err.Error()})
-		return
+		return err
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Folder uploaded successfully"})
+	return nil
 }
 
 type DeleteRequest struct {
@@ -202,7 +195,10 @@ func DeleteContent(uploader *utils.S3Uploader) gin.HandlerFunc {
 		}
 
 		entityType, err := db.GetEntityType(c.Request.Context(), publicID, userId)
-		if err != nil {
+		if entityType == "" && err == nil {
+			c.JSON(http.StatusNotFound, gin.H{"message": "File or folder not found"})
+			return
+		} else if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to get entity type", "error": err.Error()})
 			return
 		}

@@ -6,10 +6,11 @@ import (
 )
 
 type ListFileResponse struct {
-	PublicId    int64     `json:"public_id"`
+	PublicId    string    `json:"public_id"`
 	Name        string    `json:"name"`
 	Type        string    `json:"type"`
 	ContentType string    `json:"content_type"`
+	Extension   string    `json:"extension"`
 	Size        int64     `json:"size"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
@@ -19,7 +20,7 @@ type EntryData struct {
 	Id          int64          `db:"id"`
 	PublicId    string         `db:"public_id"`
 	UserId      int64          `db:"user_id"`
-	ParentId    int64          `db:"parent_id"`
+	ParentId    *int64         `db:"parent_id"`
 	Name        string         `db:"name"`
 	Type        string         `db:"type"`
 	ContentType string         `db:"content_type"`

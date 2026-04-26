@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/models"
@@ -42,6 +41,7 @@ func GetFilesByParentId(ctx context.Context, userId int64, internalParentID *int
 			name,
 			type,
 			content_type,
+			extension,
 			size,
 			created_at,
 			updated_at
@@ -66,10 +66,15 @@ func GetFilesByParentId(ctx context.Context, userId int64, internalParentID *int
 	files := make([]models.ListFileResponse, 0)
 	for rows.Next() {
 		var file models.ListFileResponse
-		err := rows.Scan(&file.PublicId, &file.Name, &file.Type, &file.ContentType, &file.Size, &file.CreatedAt, &file.UpdatedAt)
+		err := rows.Scan(&file.PublicId, &file.Name, &file.Type, &file.ContentType, &file.Extension, &file.Size, &file.CreatedAt, &file.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
+
+		if file.Extension != "" {
+			file.Name = file.Name + "." + file.Extension
+		}
+
 		files = append(files, file)
 	}
 
@@ -78,7 +83,7 @@ func GetFilesByParentId(ctx context.Context, userId int64, internalParentID *int
 
 func InsertEntryData(ctx context.Context, data *models.EntryData) error {
 	query := `
-		INSERT INTO file_metadata (public_id, user_id, parent_id, name, type, content_type, extension, size, s3_key, created_at, updated_at)
+		INSERT INTO entries (public_id, user_id, parent_id, name, type, content_type, extension, size, s3_key, created_at, updated_at)
 	    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
 	_, err := DB.Exec(ctx, query, data.PublicId, data.UserId, data.ParentId, data.Name, data.Type, data.ContentType, data.Extension, data.Size, data.S3Key, data.CreatedAt, data.UpdatedAt)
@@ -93,9 +98,7 @@ func DeleteFile(ctx context.Context, publicId string, userId int64) error {
 	`
 
 	err := DB.QueryRow(ctx, query, publicId, userId).Scan()
-	if err == pgx.ErrNoRows {
-		return fmt.Errorf("file not found or already deleted")
-	} else if err != nil {
+	if err != nil && err != pgx.ErrNoRows {
 		return err
 	}
 	return nil
@@ -117,9 +120,7 @@ func DeleteFolder(ctx context.Context, publicId string, userId int64) error {
 	`
 
 	err := DB.QueryRow(ctx, query, publicId, userId).Scan()
-	if err == pgx.ErrNoRows {
-		return fmt.Errorf("file not found or already deleted")
-	} else if err != nil {
+	if err != nil && err != pgx.ErrNoRows {
 		return err
 	}
 	return nil

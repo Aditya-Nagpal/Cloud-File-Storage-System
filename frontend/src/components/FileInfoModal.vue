@@ -10,12 +10,12 @@
 
         <div class="modal-body">
           <ul class="list-group">
-            <li class="list-group-item"><strong>Filename:</strong> {{ item.filename }}</li>
-            <li class="list-group-item"><strong>User Email:</strong> {{ item.user_email }}</li>
-            <li class="list-group-item"><strong>Type:</strong> {{ item.type }}</li>
+            <li class="list-group-item"><strong>Name:</strong> {{ item.name }}</li>
+            <li class="list-group-item"><strong>Type:</strong> {{ item.type?.toLowerCase() }}</li>
             <li class="list-group-item"><strong>Content Type:</strong> {{ item.content_type }}</li>
             <li class="list-group-item"><strong>Size:</strong> {{ item.size }} bytes</li>
-            <li class="list-group-item"><strong>Uploaded At:</strong> {{ item.uploaded_at }}</li>
+            <li class="list-group-item"><strong>Created At:</strong> {{ item.created_at }}</li>
+            <li class="list-group-item"><strong>Modified At:</strong> {{ item.updated_at === item.created_at ? '' : item.updated_at }}</li>
           </ul>
         </div>
 
