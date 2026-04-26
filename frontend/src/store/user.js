@@ -13,8 +13,7 @@ export const useUserStore = defineStore('user', {
         async fetchUserProfile() {
             try {
                 const response = await API.get(FETCH_USER_API);
-                this.user = response.data.profile;
-                localStorage.setItem('user', JSON.stringify(this.user));
+                this.user = response.data;
                 return this.user;
             } catch (error) {
                 console.error('Failed to fetch user:', error);
@@ -47,7 +46,6 @@ export const useUserStore = defineStore('user', {
                     }
                 });
                 this.user.display_picture = response.data.displayPicture;
-                localStorage.setItem('user', JSON.stringify(this.user));
                 return true;
             } catch (error) {
                 console.error('Failed to update dp: ', error);

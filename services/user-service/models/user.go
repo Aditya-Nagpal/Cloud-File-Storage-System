@@ -5,8 +5,8 @@ import (
 )
 
 type User struct {
-	Email          string    `json:"email" binding:"omitempty,email"`
 	Name           string    `json:"name" binding:"required"`
+	Email          string    `json:"email" binding:"required,email"`
 	AlternateEmail string    `json:"alternate_email" binding:"omitempty,email"`
 	ContactNumber  string    `json:"contact_number" binding:"required,min=10"`
 	Gender         string    `json:"gender" binding:"required"`

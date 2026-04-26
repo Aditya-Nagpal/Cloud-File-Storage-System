@@ -1,6 +1,9 @@
 package utils
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 func CalculateAge(dob time.Time) int {
 	now := time.Now()
@@ -11,4 +14,8 @@ func CalculateAge(dob time.Time) int {
 	}
 
 	return age
+}
+
+func CreateS3KeyForDisplayPicture(userId int64) string {
+	return fmt.Sprintf("displayPictures/users/%d/", userId)
 }

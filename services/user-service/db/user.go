@@ -10,9 +10,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func GetProfleByEmail(ctx context.Context, email string) (*models.User, error) {
+func GetProfleById(ctx context.Context, userId int64) (*models.User, error) {
 	query := `SELECT
 				name,
+				email,
 				alternate_email,
 				contact_number,
 				gender,
@@ -23,11 +24,11 @@ func GetProfleByEmail(ctx context.Context, email string) (*models.User, error) {
 				plan,
 				created_at,
 				display_picture
-			FROM users WHERE email = $1`
+			FROM users WHERE id = $1`
 
 	var user models.User
 
-	err := DB.QueryRow(ctx, query, email).Scan(&user.Name, &user.AlternateEmail, &user.ContactNumber, &user.Gender, &user.DOB, &user.Country, &user.Timezone, &user.About, &user.Plan, &user.CreatedAt, &user.DisplayPicture)
+	err := DB.QueryRow(ctx, query, userId).Scan(&user.Name, &user.Email, &user.AlternateEmail, &user.ContactNumber, &user.Gender, &user.DOB, &user.Country, &user.Timezone, &user.About, &user.Plan, &user.CreatedAt, &user.DisplayPicture)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
@@ -36,7 +37,7 @@ func GetProfleByEmail(ctx context.Context, email string) (*models.User, error) {
 	return &user, nil
 }
 
-func UpdateProfileDetails(ctx context.Context, user *models.UpdateUser) error {
+func UpdateProfileDetails(ctx context.Context, userId int64, user *models.UpdateUser) error {
 	jsonData, err := json.Marshal(user)
 	if err != nil {
 		return fmt.Errorf("failed to marshal update user data: %w", err)
@@ -70,10 +71,10 @@ func UpdateProfileDetails(ctx context.Context, user *models.UpdateUser) error {
 		argIndex++
 	}
 
-	args = append(args, user.Email)
+	args = append(args, userId)
 
 	query := fmt.Sprintf(
-		"UPDATE users SET %s WHERE email = $%d",
+		"UPDATE users SET %s WHERE id = $%d",
 		strings.Join(setClauses, ", "),
 		argIndex,
 	)
@@ -86,17 +87,17 @@ func UpdateProfileDetails(ctx context.Context, user *models.UpdateUser) error {
 	return nil
 }
 
-func UpdateDisplayPicture(ctx context.Context, userEmail, displayPictureURL string) error {
-	query := `UPDATE users SET display_picture = $1 WHERE email = $2`
-	_, err := DB.Exec(ctx, query, displayPictureURL, userEmail)
+func UpdateDisplayPicture(ctx context.Context, userId int64, displayPictureURL string) error {
+	query := `UPDATE users SET display_picture = $1 WHERE id = $2`
+	_, err := DB.Exec(ctx, query, displayPictureURL, userId)
 	if err != nil {
 		return fmt.Errorf("failed to update display picture: %w", err)
 	}
 	return nil
 }
 
-func DeleteDisplayPicture(ctx context.Context, userEmail string) error {
-	_, err := DB.Exec(ctx, `UPDATE users SET display_picture = NULL WHERE email = $1`, userEmail)
+func DeleteDisplayPicture(ctx context.Context, userId int64) error {
+	_, err := DB.Exec(ctx, `UPDATE users SET display_picture = NULL WHERE id = $1`, userId)
 	if err != nil {
 		return fmt.Errorf("failed to remove display picture: %w", err)
 	}
