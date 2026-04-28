@@ -1,6 +1,6 @@
 module github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/user-service
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared v0.0.0-20260426105649-b4d0986c1665
@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.31.12
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.16
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.3
-	github.com/gin-gonic/gin v1.12.0
+	github.com/gin-gonic/gin v1.10.0
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/joho/godotenv v1.5.1
 )

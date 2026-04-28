@@ -1,6 +1,6 @@
 module github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/auth-service
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared v0.0.0-20251005233601-a9128c8a1ce5
@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.31.12
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.16
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.8
-	github.com/gin-gonic/gin v1.12.0
+	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgconn v1.14.3
 	github.com/jackc/pgx/v5 v5.7.5

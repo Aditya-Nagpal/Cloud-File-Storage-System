@@ -1,9 +1,9 @@
 module github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared
 
-go 1.25.0
+go 1.26.2
 
 require (
-	github.com/gin-gonic/gin v1.12.0
+	github.com/gin-gonic/gin v1.10.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	golang.org/x/crypto v0.48.0
 )
