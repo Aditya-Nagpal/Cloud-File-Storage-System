@@ -56,7 +56,9 @@ func FetchContentFromS3(ctx context.Context, key string) (string, error) {
 	}
 	defer result.Body.Close()
 
-	content, err := io.ReadAll(result.Body)
+	limitReader := io.LimitReader(result.Body, 100*1024)
+
+	content, err := io.ReadAll(limitReader)
 	if err != nil {
 		return "", err
 	}

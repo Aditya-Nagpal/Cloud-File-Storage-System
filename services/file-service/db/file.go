@@ -81,13 +81,18 @@ func GetFilesByParentId(ctx context.Context, userId int64, internalParentID *int
 	return files, nil
 }
 
-func InsertEntryData(ctx context.Context, data *models.EntryData) error {
+func InsertEntryData(ctx context.Context, data *models.EntryData) (int64, error) {
 	query := `
 		INSERT INTO entries (public_id, user_id, parent_id, name, type, content_type, extension, size, s3_key, created_at, updated_at)
-	    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id
 	`
-	_, err := DB.Exec(ctx, query, data.PublicId, data.UserId, data.ParentId, data.Name, data.Type, data.ContentType, data.Extension, data.Size, data.S3Key, data.CreatedAt, data.UpdatedAt)
-	return err
+
+	var newId int64
+	err := DB.QueryRow(ctx, query, data.PublicId, data.UserId, data.ParentId, data.Name, data.Type, data.ContentType, data.Extension, data.Size, data.S3Key, data.CreatedAt, data.UpdatedAt).Scan(&newId)
+	if err != nil {
+		return 0, err
+	}
+	return newId, nil
 }
 
 func DeleteFile(ctx context.Context, publicId string, userId int64) error {

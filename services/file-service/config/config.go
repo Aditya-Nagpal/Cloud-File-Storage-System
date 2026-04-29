@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	Port               string
+	RedisPort          string
 	DatabaseURL        string
 	BucketName         string
 	AWSAccessKeyId     string
@@ -26,6 +27,7 @@ func LoadConfig() {
 
 	AppConfig = &Config{
 		Port:               getEnv("PORT"),
+		RedisPort:          getEnv("REDIS_PORT"),
 		DatabaseURL:        getEnv("DATABASE_URL"),
 		BucketName:         getEnv("AWS_S3_BUCKET_NAME"),
 		AWSAccessKeyId:     getEnv("AWS_ACCESS_KEY_ID"),

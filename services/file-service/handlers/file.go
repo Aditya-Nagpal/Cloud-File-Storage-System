@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/db"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/models"
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/services/tasks"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/utils"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/httputils"
 	"github.com/gin-gonic/gin"
@@ -46,7 +48,7 @@ func ListFilesByParentId() gin.HandlerFunc {
 	}
 }
 
-func Upload(uploader *utils.S3Uploader) gin.HandlerFunc {
+func Upload(uploader *utils.S3Uploader, taskService *tasks.TaskService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userId, err := httputils.GetUserIdHeader(c)
 		if httputils.HandleUserIdHeaderError(c, err) {
@@ -78,7 +80,7 @@ func Upload(uploader *utils.S3Uploader) gin.HandlerFunc {
 
 		switch entityType {
 		case "file":
-			err = UploadFile(c, uploader, userId, publicId, internalParentID)
+			err = UploadFile(c, uploader, taskService, userId, publicId, internalParentID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to upload file", "error": err.Error()})
 				return
@@ -103,7 +105,7 @@ func Upload(uploader *utils.S3Uploader) gin.HandlerFunc {
 	}
 }
 
-func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userId int64, publicId string, internalParentID *int64) error {
+func UploadFile(c *gin.Context, uploader *utils.S3Uploader, taskService *tasks.TaskService, userId int64, publicId string, internalParentID *int64) error {
 	file, header, err := c.Request.FormFile("file")
 
 	if err != nil {
@@ -139,9 +141,14 @@ func UploadFile(c *gin.Context, uploader *utils.S3Uploader, userId int64, public
 		UpdatedAt:   time.Now(),
 	}
 
-	err = db.InsertEntryData(c.Request.Context(), &entryData)
+	newId, err := db.InsertEntryData(c.Request.Context(), &entryData)
 	if err != nil {
 		return err
+	}
+
+	err = taskService.EnqueueGenerateEmbeddingTask(newId, s3Key)
+	if err != nil {
+		log.Printf("Failed to queue AI task: %v", err.Error())
 	}
 
 	return nil
@@ -167,7 +174,7 @@ func UploadFolder(c *gin.Context, userId int64, publicId string, name string, in
 		UpdatedAt:   time.Now(),
 	}
 
-	err := db.InsertEntryData(c.Request.Context(), &entryData)
+	_, err := db.InsertEntryData(c.Request.Context(), &entryData)
 	if err != nil {
 		return err
 	}

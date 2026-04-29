@@ -4,6 +4,8 @@ import (
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/config"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/db"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/routes"
+
+	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/services/tasks"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/file-service/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -20,8 +22,10 @@ func main() {
 		panic(err)
 	}
 
+	taskService := tasks.NewTaskService("localhost" + config.AppConfig.RedisPort)
+
 	// Setup routes
-	routes.SetupRoutes(r, s3Uploader)
+	routes.SetupRoutes(r, s3Uploader, taskService)
 
 	// Start the server
 	if err := r.Run(config.AppConfig.Port); err != nil {

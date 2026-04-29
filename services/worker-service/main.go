@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/db"
+	SharedTasks "github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/shared/tasks"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/worker-service/config"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/worker-service/tasks"
 	"github.com/Aditya-Nagpal/Cloud-File-Storage-System/services/worker-service/utils"
@@ -25,7 +26,7 @@ func main() {
 	)
 
 	mux := asynq.NewServeMux()
-	mux.HandleFunc("task:generate_embedding", tasks.HandleGenerateEmbedding)
+	mux.HandleFunc(SharedTasks.TypeGenerateEmbedding, tasks.HandleGenerateEmbedding)
 	if err := srv.Run(mux); err != nil {
 		panic(err)
 	}
