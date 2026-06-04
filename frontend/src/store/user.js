@@ -6,7 +6,7 @@ const UPDATE_USER_API = `/user/profile`;
 
 export const useUserStore = defineStore('user', {
     state: () => ({
-        user: JSON.parse(localStorage.getItem('user')) || null,
+        user: null,
     }),
 
     actions: {
@@ -30,7 +30,7 @@ export const useUserStore = defineStore('user', {
                     updatedUser[key] = value;
                 }
                 this.user = { ...this.user, ...updatedUser };
-                localStorage.setItem('user', JSON.stringify(this.user));
+                console.log('Updated user:', this.user);
                 return true;
             } catch (error) {
                 console.error('Failed to update user:', error);
@@ -57,7 +57,6 @@ export const useUserStore = defineStore('user', {
             try {
                 await API.patch(`${UPDATE_USER_API}?removeDp=true`);
                 this.user.display_picture = null;
-                localStorage.setItem('user', JSON.stringify(this.user));
                 return true;
             } catch (error) {
                 console.error('Failed to remove dp: ', error);

@@ -19,7 +19,7 @@ import (
 func HandleGenerateEmbedding(ctx context.Context, t *asynq.Task) error {
 	var payload models.Payload
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
-		log.Printf("Failed to unmarshal payload: ", err.Error())
+		log.Printf("Failed to unmarshal payload: %v", err.Error())
 		return err
 	}
 
@@ -27,7 +27,7 @@ func HandleGenerateEmbedding(ctx context.Context, t *asynq.Task) error {
 
 	rawBytes, err := utils.FetchRawBytesFromS3(ctx, s3Key)
 	if err != nil {
-		log.Printf("Failed to fetch raw bytes from S3: ", err.Error())
+		log.Printf("Failed to fetch raw bytes from S3: %v", err.Error())
 		return err
 	}
 

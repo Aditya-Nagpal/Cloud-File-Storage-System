@@ -10,7 +10,7 @@ import (
 var DB *pgxpool.Pool
 
 func ConnectDatabase() {
-	dbURL := "postgres://adityanagpal:bhaibhai10@localhost:5432/FastFiles"
+	dbURL := "postgres://adityanagpal:bhaibhai10@localhost:5432/fastfiles"
 	var err error
 
 	DB, err = pgxpool.New(context.Background(), dbURL)

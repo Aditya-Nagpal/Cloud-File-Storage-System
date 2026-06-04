@@ -300,13 +300,6 @@ func HandleSearch() gin.HandlerFunc {
 			return
 		}
 
-		// var t testing.T
-		// queryVector, err := SharedTasks.TestGenerateEmbedding(req.Query, &t)
-		// if err != nil {
-		// 	c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate embedding", "error": err.Error()})
-		// 	return
-		// }
-
 		files, err := db.SearchByVector(c.Request.Context(), queryVector, req.Limit, userId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to search files", "error": err.Error()})
