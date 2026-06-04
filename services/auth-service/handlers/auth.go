@@ -65,8 +65,7 @@ func Register(c *gin.Context) {
 	}
 
 	if err := sqs.PublishSignupSuccessEmail(ctx, req.Email, req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not send signup email", "error": err.Error()})
-		return
+		fmt.Printf("Error publishing signup email: %v\n", err)
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"user": req, "message": "User registered successfully"})

@@ -8,10 +8,10 @@ import (
 )
 
 type Config struct {
+	Port            string
 	AuthServiceUrl  string
 	FileServiceUrl  string
 	UserServiceUrl  string
-	Port            string
 	FrontendBaseUrl string
 	JwtSecret       string
 }
@@ -25,10 +25,10 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
+		Port:            getEnv("PORT"),
 		AuthServiceUrl:  getEnv("AUTH_SERVICE_URL"),
 		FileServiceUrl:  getEnv("FILE_SERVICE_URL"),
 		UserServiceUrl:  getEnv("USER_SERVICE_URL"),
-		Port:            getEnv("PORT"),
 		FrontendBaseUrl: getEnv("FRONTEND_BASE_URL"),
 		JwtSecret:       getEnv("JWT_SECRET"),
 	}
