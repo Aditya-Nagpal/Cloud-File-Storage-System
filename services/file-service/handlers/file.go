@@ -252,7 +252,7 @@ func DownloadFile(uploader *utils.S3Uploader) gin.HandlerFunc {
 			return
 		}
 
-		file, err := db.GetDeleteFile(c.Request.Context(), publicID, userId)
+		file, err := db.GetDownloadFile(c.Request.Context(), publicID, userId)
 		if file == nil && err == nil {
 			c.JSON(http.StatusNotFound, gin.H{"message": "File not found"})
 			return
@@ -266,7 +266,8 @@ func DownloadFile(uploader *utils.S3Uploader) gin.HandlerFunc {
 			return
 		}
 
-		url, err := uploader.GeneratePresignedURL(file.S3Key, 30*time.Second, file.Name)
+		filename := file.Name + "." + file.Extension
+		url, err := uploader.GeneratePresignedURL(file.S3Key, 30*time.Second, filename)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate download URL", "error": err.Error()})
 			return

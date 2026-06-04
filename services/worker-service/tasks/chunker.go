@@ -10,10 +10,7 @@ func chunkText(text string, chunkSize, overlap int) []string {
 
 	start := 0
 	for start < len(runes) {
-		end := start + chunkSize
-		if end > len(runes) {
-			end = len(runes)
-		}
+		end := min(start+chunkSize, len(runes))
 
 		chunks = append(chunks, string(runes[start:end]))
 

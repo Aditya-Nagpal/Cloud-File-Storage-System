@@ -32,10 +32,11 @@ type EntryData struct {
 	DeletedAt   time.Time      `db:"deleted_at"`
 }
 
-type DeleteFile struct {
-	Name  string `db:"name"`
-	Type  string `db:"type"`
-	S3Key string `db:"s3_key"`
+type DownloadFile struct {
+	Name      string `db:"name"`
+	Extension string `db:"extension"`
+	Type      string `db:"type"`
+	S3Key     string `db:"s3_key"`
 }
 
 type SearchResponse struct {

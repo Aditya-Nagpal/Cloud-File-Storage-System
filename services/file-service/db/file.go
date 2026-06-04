@@ -131,11 +131,12 @@ func DeleteFolder(ctx context.Context, publicId string, userId int64) error {
 	return nil
 }
 
-func GetDeleteFile(ctx context.Context, publicId string, userId int64) (*models.DeleteFile, error) {
-	query := `SELECT name, type, s3_key FROM entries WHERE public_id = $1 AND user_id = $2`
+func GetDownloadFile(ctx context.Context, publicId string, userId int64) (*models.DownloadFile, error) {
+	query := `SELECT name, extension, type, s3_key FROM entries WHERE public_id = $1 AND user_id = $2`
 
-	var file models.DeleteFile
-	err := DB.QueryRow(ctx, query, publicId, userId).Scan(&file.Name, &file.Type, &file.S3Key)
+	var file models.DownloadFile
+
+	err := DB.QueryRow(ctx, query, publicId, userId).Scan(&file.Name, &file.Extension, &file.Type, &file.S3Key)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	} else if err != nil {

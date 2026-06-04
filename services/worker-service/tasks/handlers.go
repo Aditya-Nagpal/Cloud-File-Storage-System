@@ -33,7 +33,7 @@ func HandleGenerateEmbedding(ctx context.Context, t *asynq.Task) error {
 
 	content, err := utils.ExtractTextFromPDF(rawBytes)
 	if err != nil {
-		log.Printf("Failed to extract text from PDF: ", err.Error())
+		log.Printf("Failed to extract text from PDF: %v", err.Error())
 		return err
 	}
 
